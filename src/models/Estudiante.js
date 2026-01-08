@@ -9,11 +9,11 @@ const Estudiante = sequelize.define('Estudiante', {
     },
     universidad_id: {
         type: DataTypes.UUID,
-        allowNull: true  // Asegurar que sea nullable
+        allowNull: true
     },
     periodo_id: {
         type: DataTypes.UUID,
-        allowNull: true   // Asegurar que sea nullable
+        allowNull: true
     },
     nombres: {
         type: DataTypes.STRING(100),

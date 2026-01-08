@@ -7,7 +7,7 @@ const {
     Administrador,
     RegistroHora,
     sequelize
-} = require('./index');
+} = require('../models');
 
 async function seedDatabase() {
     const transaction = await sequelize.transaction();
@@ -19,7 +19,7 @@ async function seedDatabase() {
         const adminCount = await Administrador.count({ transaction });
 
         if (adminCount > 0) {
-            console.log('⚠️  Ya existen datos en la base de datos. Saltando seeders.');
+            console.log('⚠️  Ya existen datos. Saltando seeders.');
             await transaction.rollback();
             return;
         }
@@ -34,145 +34,90 @@ async function seedDatabase() {
             super_admin: true,
             activo: true
         }, { transaction });
-        console.log(`✅ Administrador creado: ${admin.email}`);
+        console.log(`✅ Admin: ${admin.email} / Admin123!`);
 
         // 2. Crear universidad
         console.log('🏛️  Creando universidad...');
         const universidad = await Universidad.create({
-            nombre: 'Universidad Nacional de Prueba',
+            nombre: 'Universidad Técnica del Norte',
             activa: true
         }, { transaction });
-        console.log(`✅ Universidad creada: ${universidad.nombre}`);
+        console.log(`✅ Universidad: ${universidad.nombre}`);
 
         // 3. Crear periodo
         console.log('📅 Creando periodo...');
         const periodo = await Periodo.create({
             universidad_id: universidad.id,
-            nombre: '2024-I',
-            fecha_inicio: '2024-01-15',
-            fecha_fin: '2024-07-15',
+            nombre: '2025-I',
+            fecha_inicio: '2025-01-15',
+            fecha_fin: '2025-07-15',
             horas_totales_requeridas: 240,
             activo: true
         }, { transaction });
-        console.log(`✅ Periodo creado: ${periodo.nombre} (${periodo.horas_totales_requeridas} horas)`);
+        console.log(`✅ Periodo: ${periodo.nombre} (${periodo.horas_totales_requeridas}h)`);
 
-        // 4. Crear estudiante
-        console.log('👨‍🎓 Creando estudiante...');
-        const estudiantePassword = await bcrypt.hash('Estudiante123!', 12);
-        const estudiante = await Estudiante.create({
-            nombres: 'Juan',
-            apellidos: 'Pérez',
-            email: 'juan.perez@ejemplo.com',
-            password_hash: estudiantePassword,
-            universidad_id: universidad.id,
-            periodo_id: periodo.id,
-            activo: true
-        }, { transaction });
-        console.log(`✅ Estudiante creado: ${estudiante.nombres} ${estudiante.apellidos} (${estudiante.email})`);
-
-        // 5. Crear más estudiantes
-        console.log('👨‍🎓 Creando más estudiantes...');
+        // 4. Crear estudiantes
+        console.log('👨‍🎓 Creando estudiantes...');
         const estudiantesData = [
-            {
-                nombres: 'María',
-                apellidos: 'García',
-                email: 'maria.garcia@ejemplo.com',
-                password: 'Estudiante123!',
-                universidad_id: universidad.id,
-                periodo_id: periodo.id
-            },
-            {
-                nombres: 'Carlos',
-                apellidos: 'López',
-                email: 'carlos.lopez@ejemplo.com',
-                password: 'Estudiante123!',
-                universidad_id: universidad.id,
-                periodo_id: periodo.id
-            },
-            {
-                nombres: 'Ana',
-                apellidos: 'Martínez',
-                email: 'ana.martinez@ejemplo.com',
-                password: 'Estudiante123!',
-                universidad_id: universidad.id,
-                periodo_id: periodo.id
-            }
+            { nombres: 'Juan', apellidos: 'Pérez', email: 'juan.perez@ejemplo.com' },
+            { nombres: 'María', apellidos: 'García', email: 'maria.garcia@ejemplo.com' },
+            { nombres: 'Carlos', apellidos: 'López', email: 'carlos.lopez@ejemplo.com' }
         ];
 
-        for (const estudianteData of estudiantesData) {
-            const passwordHash = await bcrypt.hash(estudianteData.password, 12);
-            await Estudiante.create({
-                nombres: estudianteData.nombres,
-                apellidos: estudianteData.apellidos,
-                email: estudianteData.email,
+        const estudiantesCreados = [];
+        for (const est of estudiantesData) {
+            const passwordHash = await bcrypt.hash('Estudiante123!', 12);
+            const estudiante = await Estudiante.create({
+                nombres: est.nombres,
+                apellidos: est.apellidos,
+                email: est.email,
                 password_hash: passwordHash,
-                universidad_id: estudianteData.universidad_id,
-                periodo_id: estudianteData.periodo_id,
+                universidad_id: universidad.id,
+                periodo_id: periodo.id,
                 activo: true
             }, { transaction });
-            console.log(`   ✓ ${estudianteData.nombres} ${estudianteData.apellidos}`);
+            estudiantesCreados.push(estudiante);
+            console.log(`   ✓ ${est.nombres} ${est.apellidos} (${est.email})`);
         }
 
-        // 6. Crear registros de horas de ejemplo
-        console.log('⏱️  Creando registros de horas...');
-
-        // Registros para Juan Pérez
-        const registrosJuan = [
-            { fecha: '2024-01-16', horas: 8, descripcion: 'Primer día - Orientación y capacitación inicial' },
-            { fecha: '2024-01-17', horas: 7.5, descripcion: 'Revisión de procesos y documentación' },
-            { fecha: '2024-01-18', horas: 6, descripcion: 'Capacitación en herramientas de desarrollo' },
-            { fecha: '2024-01-19', horas: 8, descripcion: 'Desarrollo de módulo de autenticación' },
-            { fecha: '2024-01-22', horas: 7, descripcion: 'Pruebas unitarias y documentación' }
+        // 5. Crear registros de horas
+        console.log('⏱️  Creando registros...');
+        const registros = [
+            { fecha: '2025-01-16', horas: 8, descripcion: 'Orientación inicial' },
+            { fecha: '2025-01-17', horas: 7.5, descripcion: 'Capacitación' },
+            { fecha: '2025-01-18', horas: 6, descripcion: 'Desarrollo' }
         ];
 
-        for (const registro of registrosJuan) {
+        for (const reg of registros) {
             await RegistroHora.create({
-                estudiante_id: estudiante.id,
-                fecha: registro.fecha,
-                horas: registro.horas,
-                descripcion: registro.descripcion
+                estudiante_id: estudiantesCreados[0].id,
+                fecha: reg.fecha,
+                horas: reg.horas,
+                descripcion: reg.descripcion
             }, { transaction });
         }
-        console.log(`   ✓ 5 registros para Juan Pérez (Total: ${registrosJuan.reduce((sum, r) => sum + r.horas, 0)} horas)`);
+        console.log(`   ✓ ${registros.length} registros creados`);
 
-        // Confirmar transacción
         await transaction.commit();
 
-        console.log('\n✨ Seeders completados exitosamente!');
-        console.log('\n📋 Datos creados:');
-        console.log('👤 Administrador:');
-        console.log('   - admin@controlpracticas.com / Admin123!');
-        console.log('\n🏛️  Universidad:');
-        console.log('   - Universidad Nacional de Prueba');
-        console.log('\n📅 Periodo:');
-        console.log('   - 2024-I (240 horas requeridas)');
-        console.log('\n👨‍🎓 Estudiantes (password: Estudiante123!):');
-        console.log('   1. Juan Pérez - juan.perez@ejemplo.com');
-        console.log('   2. María García - maria.garcia@ejemplo.com');
-        console.log('   3. Carlos López - carlos.lopez@ejemplo.com');
-        console.log('   4. Ana Martínez - ana.martinez@ejemplo.com');
-        console.log('\n⏱️  Registros de horas:');
-        console.log('   - 5 registros de ejemplo para Juan Pérez');
+        console.log('\n✨ ¡Seeders completados!\n');
+        console.log('📋 CREDENCIALES:');
+        console.log('──────────────────────────────────');
+        console.log('👤 Admin: admin@controlpracticas.com / Admin123!');
+        console.log('👨‍🎓 Estudiantes: Estudiante123!');
+        console.log('──────────────────────────────────\n');
 
     } catch (error) {
         await transaction.rollback();
         console.error('❌ Error en seeders:', error);
-        console.error('Stack:', error.stack);
-        process.exit(1);
+        throw error;
     }
 }
 
-// Si el archivo se ejecuta directamente
 if (require.main === module) {
     seedDatabase()
-        .then(() => {
-            console.log('\n✅ Proceso completado');
-            process.exit(0);
-        })
-        .catch(error => {
-            console.error('❌ Error fatal:', error);
-            process.exit(1);
-        });
+        .then(() => process.exit(0))
+        .catch(() => process.exit(1));
 }
 
 module.exports = seedDatabase;

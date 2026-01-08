@@ -1,6 +1,5 @@
 const jwt = require('jsonwebtoken');
 
-// Verificar token JWT
 const authenticateToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -14,7 +13,6 @@ const authenticateToken = (req, res, next) => {
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) {
-            console.log('❌ Token inválido:', err.message);
             return res.status(403).json({
                 success: false,
                 error: 'Token inválido o expirado'
@@ -26,7 +24,6 @@ const authenticateToken = (req, res, next) => {
     });
 };
 
-// Verificar que es administrador
 const isAdmin = (req, res, next) => {
     if (req.user.tipo !== 'administrador') {
         return res.status(403).json({
@@ -37,7 +34,6 @@ const isAdmin = (req, res, next) => {
     next();
 };
 
-// Verificar que es estudiante
 const isEstudiante = (req, res, next) => {
     if (req.user.tipo !== 'estudiante') {
         return res.status(403).json({
