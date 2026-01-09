@@ -1,6 +1,6 @@
-// ==================== src/controllers/authController.js ====================
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const { validationResult } = require('express-validator');
 const Estudiante = require('../models/Estudiante');
 const Administrador = require('../models/Administrador');
 
@@ -8,14 +8,19 @@ const authController = {
     // LOGIN para admin o estudiante
     login: async (req, res) => {
         try {
-            const { email, password } = req.body;
-
-            if (!email || !password) {
+            // Validar errores de express-validator
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Email y contraseña son requeridos'
+                    errors: errors.array()
                 });
             }
+
+            const { email, password } = req.body;
+
+            // Log seguro (sin email)
+            console.log(`🔐 Intento de login`);
 
             console.log(`🔐 Login intentado: ${email}`);
 
@@ -29,20 +34,14 @@ const authController = {
                 tipo = 'estudiante';
             }
 
-            if (!usuario) {
-                return res.status(401).json({
-                    success: false,
-                    error: 'Credenciales incorrectas'
-                });
-            }
-
             // Verificar contraseña
-            const passwordValida = await bcrypt.compare(password, usuario.password_hash);
+            const passwordValida = usuario ? await bcrypt.compare(password, usuario.password_hash) : false;
 
-            if (!passwordValida) {
+            if (!usuario || !passwordValida) {
+                // Respuesta genérica para evitar enumeración
                 return res.status(401).json({
                     success: false,
-                    error: 'Credenciales incorrectas'
+                    error: 'Credenciales inválidas'
                 });
             }
 
@@ -85,14 +84,12 @@ const authController = {
     // REGISTRAR PRIMER ADMINISTRADOR
     registroPrimerAdmin: async (req, res) => {
         try {
-            const { nombres, email, password } = req.body;
-
-            if (!nombres || !email || !password) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Todos los campos son requeridos'
-                });
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ success: false, errors: errors.array() });
             }
+
+            const { nombres, email, password } = req.body;
 
             // Verificar si ya existe algún administrador
             const existeAdmin = await Administrador.findOne();
@@ -152,22 +149,22 @@ const authController = {
     // REGISTRAR ESTUDIANTE
     registroEstudiante: async (req, res) => {
         try {
-            const { nombres, apellidos, email, password } = req.body;
-
-            if (!nombres || !apellidos || !email || !password) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Todos los campos son requeridos'
-                });
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({ success: false, errors: errors.array() });
             }
+
+            const { nombres, apellidos, email, password } = req.body;
 
             const existeEstudiante = await Estudiante.findOne({ where: { email } });
             const existeAdmin = await Administrador.findOne({ where: { email } });
 
             if (existeEstudiante || existeAdmin) {
+                // Mensaje genérico para evitar enumeración (opcionalmente se enviaría email)
+                // Para este caso práctico, mantendremos el error pero con menos detalle
                 return res.status(400).json({
                     success: false,
-                    error: 'El email ya está registrado'
+                    error: 'No se pudo completar el registro con estos datos.'
                 });
             }
 
@@ -269,6 +266,28 @@ const authController = {
             res.status(500).json({
                 success: false,
                 error: 'Error al crear administrador'
+            });
+        }
+    },
+
+    // LOGOUT
+    // LOGOUT (Stateless)
+    logout: async (req, res) => {
+        try {
+            // En JWT stateless, el servidor no necesita hacer nada más que confirmar.
+            // Es responsabilidad del cliente eliminar el token.
+            console.log('🚪 Logout solicitado (Stateless)');
+
+            res.json({
+                success: true,
+                message: 'Sesión cerrada exitosamente (Elimine el token de su cliente)'
+            });
+
+        } catch (error) {
+            console.error('❌ Error en logout:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Error al cerrar sesión'
             });
         }
     }

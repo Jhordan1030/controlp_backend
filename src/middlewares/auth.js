@@ -11,7 +11,10 @@ const authenticateToken = (req, res, next) => {
         });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    const Estudiante = require('../models/Estudiante');
+    const Administrador = require('../models/Administrador');
+
+    jwt.verify(token, process.env.JWT_SECRET, async (err, user) => {
         if (err) {
             return res.status(403).json({
                 success: false,
@@ -19,8 +22,32 @@ const authenticateToken = (req, res, next) => {
             });
         }
 
-        req.user = user;
-        next();
+        try {
+            // 2. Verificar si el usuario sigue existiendo y está activo
+            let usuarioDb = null;
+            if (user.tipo === 'administrador') {
+                usuarioDb = await Administrador.findByPk(user.id);
+            } else {
+                usuarioDb = await Estudiante.findByPk(user.id);
+            }
+
+            if (!usuarioDb || !usuarioDb.activo) {
+                return res.status(401).json({
+                    success: false,
+                    error: 'Usuario no encontrado o inactivo'
+                });
+            }
+
+            req.user = user;
+            req.token = token; // Guardamos el token para logout
+            next();
+        } catch (error) {
+            console.error('Error en auth middleware:', error);
+            return res.status(500).json({
+                success: false,
+                error: 'Error interno de autenticación'
+            });
+        }
     });
 };
 

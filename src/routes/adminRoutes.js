@@ -14,10 +14,12 @@ router.get('/dashboard', adminController.dashboard);
 // UNIVERSIDADES
 router.get('/universidades', adminController.listarUniversidades);
 router.post('/universidades', adminController.crearUniversidad);
+router.put('/universidades/:id', adminController.actualizarUniversidad);
 
 // PERIODOS
 router.get('/periodos', adminController.listarPeriodos);
 router.post('/periodos', adminController.crearPeriodo);
+router.put('/periodos/:id', adminController.actualizarPeriodo);
 
 // ESTUDIANTES
 router.get('/estudiantes', adminController.listarEstudiantes);

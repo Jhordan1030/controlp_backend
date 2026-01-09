@@ -90,6 +90,47 @@ const adminController = {
         }
     },
 
+    actualizarUniversidad: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { nombre, activa } = req.body;
+
+            const universidad = await Universidad.findByPk(id);
+
+            if (!universidad) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Universidad no encontrada'
+                });
+            }
+
+            // Si se cambia el nombre, verificar que no exista ya
+            if (nombre && nombre !== universidad.nombre) {
+                const existe = await Universidad.findOne({ where: { nombre } });
+                if (existe) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Ya existe una universidad con ese nombre'
+                    });
+                }
+            }
+
+            await universidad.update({
+                nombre: nombre || universidad.nombre,
+                activa: activa !== undefined ? activa : universidad.activa
+            });
+
+            res.json({
+                success: true,
+                message: 'Universidad actualizada',
+                universidad
+            });
+        } catch (error) {
+            console.error('❌ Error:', error);
+            res.status(500).json({ success: false, error: 'Error al actualizar universidad' });
+        }
+    },
+
     // CRUD PERIODOS
     listarPeriodos: async (req, res) => {
         try {
@@ -149,6 +190,39 @@ const adminController = {
         } catch (error) {
             console.error('❌ Error:', error);
             res.status(500).json({ success: false, error: 'Error al crear periodo' });
+        }
+    },
+
+    actualizarPeriodo: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { nombre, fecha_inicio, fecha_fin, horas_totales_requeridas, activo } = req.body;
+
+            const periodo = await Periodo.findByPk(id);
+
+            if (!periodo) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Periodo no encontrado'
+                });
+            }
+
+            await periodo.update({
+                nombre: nombre || periodo.nombre,
+                fecha_inicio: fecha_inicio || periodo.fecha_inicio,
+                fecha_fin: fecha_fin || periodo.fecha_fin,
+                horas_totales_requeridas: horas_totales_requeridas || periodo.horas_totales_requeridas,
+                activo: activo !== undefined ? activo : periodo.activo
+            });
+
+            res.json({
+                success: true,
+                message: 'Periodo actualizado',
+                periodo
+            });
+        } catch (error) {
+            console.error('❌ Error:', error);
+            res.status(500).json({ success: false, error: 'Error al actualizar periodo' });
         }
     },
 

@@ -11,7 +11,12 @@
     "db:sync": "node src/database/sync.js",
     "db:seed": "node src/database/seeders.js"
   },
-  "keywords": ["practicas", "horas", "universidad", "estudiantes"],
+  "keywords": [
+    "practicas",
+    "horas",
+    "universidad",
+    "estudiantes"
+  ],
   "author": "Jhordan Huera",
   "license": "ISC",
   "type": "commonjs",
@@ -23,6 +28,7 @@
     "express-rate-limit": "^8.2.1",
     "express-validator": "^7.3.1",
     "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.16.3",
     "pg-hstore": "^2.3.4",

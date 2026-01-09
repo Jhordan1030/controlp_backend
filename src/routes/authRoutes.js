@@ -1,14 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { authenticateToken, isAdmin } = require('../middlewares/auth');
+const { authenticateToken } = require('../middlewares/auth');
+const { validateLogin, validateRegistroEstudiante, validateRegistroAdmin } = require('../validators/authValidator');
 
-// PÚBLICOS (sin autenticación)
-router.post('/login', authController.login);
-router.post('/primer-admin', authController.registroPrimerAdmin);
-router.post('/registro', authController.registroEstudiante);
+// Rutas públicas
+router.post('/login', validateLogin, authController.login);
+router.post('/primer-admin', validateRegistroAdmin, authController.registroPrimerAdmin);
+router.post('/registro-estudiante', validateRegistroEstudiante, authController.registroEstudiante);
 
-// PROTEGIDOS (requieren autenticación de admin)
-router.post('/crear-admin', authenticateToken, isAdmin, authController.crearAdmin);
+// Rutas protegidas
+router.post('/crear-admin', authenticateToken, validateRegistroAdmin, authController.crearAdmin);
+
+// LOGOUT
+router.post('/logout', authenticateToken, authController.logout);
 
 module.exports = router;
