@@ -25,23 +25,37 @@ const authController = {
             console.log(`🔐 Login intentado: ${email}`);
 
             // Buscar en administradores
+            console.log(`🔍 Buscando administrador con email: ${email}`);
             let usuario = await Administrador.findOne({ where: { email } });
             let tipo = 'administrador';
+            console.log(`👤 Admin encontrado: ${usuario ? 'SÍ' : 'NO'}`);
 
             // Si no es administrador, buscar en estudiantes
             if (!usuario) {
+                console.log(`🔍 Buscando estudiante con email: ${email}`);
                 usuario = await Estudiante.findOne({ where: { email } });
                 tipo = 'estudiante';
+                console.log(`👤 Estudiante encontrado: ${usuario ? 'SÍ' : 'NO'}`);
+            }
+
+            if (!usuario) {
+                console.log('❌ Usuario no encontrado en ninguna tabla');
+                return res.status(401).json({
+                    success: false,
+                    error: 'Credenciales inválidas (Usuario)'
+                });
             }
 
             // Verificar contraseña
-            const passwordValida = usuario ? await bcrypt.compare(password, usuario.password_hash) : false;
+            console.log('🔑 Verificando contraseña...');
+            const passwordValida = await bcrypt.compare(password, usuario.password_hash);
+            console.log(`🔐 Contraseña válida: ${passwordValida ? 'SÍ' : 'NO'}`);
 
-            if (!usuario || !passwordValida) {
-                // Respuesta genérica para evitar enumeración
+            if (!passwordValida) {
+                console.log('❌ Contraseña incorrecta');
                 return res.status(401).json({
                     success: false,
-                    error: 'Credenciales inválidas'
+                    error: 'Credenciales inválidas (Password)'
                 });
             }
 
