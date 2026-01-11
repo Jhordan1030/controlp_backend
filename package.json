@@ -9,7 +9,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "db:test": "node test-connection.js",
     "db:sync": "node src/database/sync.js",
-    "db:seed": "node src/database/seeders.js"
+    "db:seed": "node src/database/seeders.js",
+    "build": "echo 'Building for Vercel'",
+    "vercel-build": "npm install"
   },
   "keywords": [
     "practicas",
