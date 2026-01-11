@@ -54,11 +54,22 @@ const requestLogger = async (req, res, next) => {
         // Para evitar duplicados en Login, podríamos poner un filtro
         if (req.path.includes('/auth/login')) return; // Auth controller ya maneja esto mejor
 
+        // Inferir tabla y detalles basados en la ruta
+        let tabla = 'sistema';
+        if (req.path.includes('/auth')) tabla = 'autenticacion';
+        else if (req.path.includes('/admin')) tabla = 'administradores';
+        else if (req.path.includes('/estudiante')) tabla = 'estudiantes';
+        else if (req.path.includes('/universidades')) tabla = 'universidades';
+        else if (req.path.includes('/periodos')) tabla = 'periodos';
+
+        // Refinar si es posible
+        if (req.path.includes('/registros') || req.path.includes('/horas')) tabla = 'registros_horas';
+
         try {
             await auditController.logAction(
                 req,
                 `HTTP_${action}`,
-                'api',
+                tabla,
                 null,
                 details
             );
