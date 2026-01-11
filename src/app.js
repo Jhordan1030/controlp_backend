@@ -86,10 +86,14 @@ app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 // Logger simple
+// Logger simple (Consola)
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.headers.origin || 'N/A'}`);
   next();
 });
+
+// Logger de Auditoría (Base de Datos)
+app.use(require('./middlewares/requestLogger'));
 
 // RUTAS
 app.use('/api/v1/auth', authRoutes);
