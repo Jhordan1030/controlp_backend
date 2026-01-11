@@ -31,18 +31,32 @@ const estudianteController = {
             });
         } catch (error) {
             console.error('❌ Error en perfil:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al obtener perfil' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al obtener perfil'
             });
         }
     },
 
-    // DASHBOARD (versión sin includes)
+    // DASHBOARD
     dashboard: async (req, res) => {
         try {
-            const estudiante = await Estudiante.findByPk(req.user.id);
-            
+            // Incluir Universidad y Periodo en la consulta
+            const estudiante = await Estudiante.findByPk(req.user.id, {
+                include: [
+                    {
+                        model: Universidad,
+                        as: 'universidad',
+                        attributes: ['id', 'nombre']
+                    },
+                    {
+                        model: Periodo,
+                        as: 'periodo',
+                        attributes: ['id', 'nombre', 'horas_totales_requeridas', 'fecha_inicio', 'fecha_fin']
+                    }
+                ]
+            });
+
             if (!estudiante) {
                 return res.status(404).json({
                     success: false,
@@ -60,12 +74,10 @@ const estudianteController = {
                 sum + parseFloat(reg.horas), 0
             );
 
-            // Obtener periodo si existe
-            let horasRequeridas = 0;
-            if (estudiante.periodo_id) {
-                const periodo = await Periodo.findByPk(estudiante.periodo_id);
-                horasRequeridas = periodo ? periodo.horas_totales_requeridas : 0;
-            }
+            // Obtener datos del periodo
+            const horasRequeridas = estudiante.periodo ? estudiante.periodo.horas_totales_requeridas : 0;
+            const periodoNombre = estudiante.periodo ? estudiante.periodo.nombre : 'Sin asignar';
+            const universidadNombre = estudiante.universidad ? estudiante.universidad.nombre : 'Sin asignar';
 
             res.json({
                 success: true,
@@ -73,23 +85,26 @@ const estudianteController = {
                 estudiante: {
                     nombres: estudiante.nombres,
                     apellidos: estudiante.apellidos,
-                    email: estudiante.email
+                    email: estudiante.email,
+                    universidad: universidadNombre,
+                    periodo: periodoNombre,
+                    periodo_info: estudiante.periodo // Info extra útil
                 },
                 estadisticas: {
                     totalRegistros: registros.length,
                     totalHoras: totalHoras.toFixed(2),
                     horasRequeridas,
                     horasFaltantes: Math.max(0, horasRequeridas - totalHoras).toFixed(2),
-                    porcentaje: horasRequeridas > 0 ? 
+                    porcentaje: horasRequeridas > 0 ?
                         ((totalHoras / horasRequeridas) * 100).toFixed(2) : 0,
                     ultimosRegistros: registros
                 }
             });
         } catch (error) {
             console.error('❌ Error en dashboard:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al cargar dashboard' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al cargar dashboard'
             });
         }
     },
@@ -161,9 +176,9 @@ const estudianteController = {
             });
         } catch (error) {
             console.error('❌ Error en registrarHoras:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al registrar horas' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al registrar horas'
             });
         }
     },
@@ -195,9 +210,9 @@ const estudianteController = {
             });
         } catch (error) {
             console.error('❌ Error en verRegistros:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al obtener registros' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al obtener registros'
             });
         }
     },
@@ -252,9 +267,9 @@ const estudianteController = {
             });
         } catch (error) {
             console.error('❌ Error en actualizarRegistro:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al actualizar registro' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al actualizar registro'
             });
         }
     },
@@ -286,9 +301,9 @@ const estudianteController = {
             });
         } catch (error) {
             console.error('❌ Error en eliminarRegistro:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al eliminar registro' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al eliminar registro'
             });
         }
     },
@@ -323,7 +338,7 @@ const estudianteController = {
                 estadisticas: {
                     totalRegistros: registros.length,
                     totalHoras: totalHoras.toFixed(2),
-                    promedioPorDia: registros.length > 0 ? 
+                    promedioPorDia: registros.length > 0 ?
                         (totalHoras / registros.length).toFixed(2) : 0,
                     porMes: estadisticasPorMes,
                     ultimosMeses: Object.keys(estadisticasPorMes)
@@ -338,9 +353,9 @@ const estudianteController = {
             });
         } catch (error) {
             console.error('❌ Error en misEstadisticas:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al obtener estadísticas' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al obtener estadísticas'
             });
         }
     }
