@@ -13,8 +13,7 @@ const requestLogger = async (req, res, next) => {
                 req.user = { id: decoded.id, tipo: decoded.tipo }; // Mínima info para log
             }
         } catch (err) {
-            // Ignorar errores de token aquí, ya que el middleware de auth real los manejará si es necesario.
-            // Aquí solo queremos saber "quién es" si es posible.
+            console.log('🕵️ Audit: Error decodificando token (Soft Auth):', err.message);
         }
     }
 
