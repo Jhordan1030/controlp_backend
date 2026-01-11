@@ -95,7 +95,7 @@ app.use((req, res, next) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/estudiante', estudianteRoutes);
-app.use('/api/v1/auditoria', require('./routes/auditRoutes'));
+app.use('/api/v1/admin/auditoria', require('./routes/auditRoutes'));
 
 // Health check
 app.get('/api/v1/health', (req, res) => {
