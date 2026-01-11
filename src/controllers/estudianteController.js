@@ -1,8 +1,5 @@
 // ==================== src/controllers/estudianteController.js ====================
-const Estudiante = require('../models/Estudiante');
-const RegistroHora = require('../models/RegistroHora');
-const Universidad = require('../models/Universidad');
-const Periodo = require('../models/Periodo');
+const { Estudiante, RegistroHora, Universidad, Periodo } = require('../models');
 
 const estudianteController = {
     // PERFIL (versión sin includes)
