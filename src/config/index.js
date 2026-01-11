@@ -1,5 +1,9 @@
-// src/database/index.js - VERSIÓN ULTRA COMPATIBLE
+// src/database/index.js
+require('dotenv').config();
+
 console.log('🔧 Inicializando conexión a base de datos...');
+
+const { Sequelize } = require('sequelize');
 
 // Variable para almacenar la instancia
 let sequelizeInstance = null;
@@ -10,141 +14,73 @@ const initializeDatabase = () => {
   }
 
   try {
-    // 1. Intentar cargar Sequelize
-    const { Sequelize } = require('sequelize');
-    console.log('✅ Sequelize cargado');
-    
-    // 2. Verificar si estamos en Vercel
     const isVercel = process.env.VERCEL === '1';
+    console.log(isVercel ? '🌍 Entorno: Vercel' : '💻 Entorno: Local');
     
-    if (isVercel) {
-      console.log('🌍 Entorno: Vercel Production');
-    }
-    
-    // 3. Si no hay DATABASE_URL en Vercel, usar dummy inmediatamente
-    if (isVercel && !process.env.DATABASE_URL) {
-      console.warn('⚠️  Vercel sin DATABASE_URL - usando modo dummy');
+    // Si no hay DATABASE_URL, usar dummy
+    if (!process.env.DATABASE_URL) {
+      console.warn('⚠️  No DATABASE_URL - usando modo dummy');
       sequelizeInstance = createDummyConnection();
       return sequelizeInstance;
     }
     
-    // 4. Crear conexión REAL con configuraciones ultra seguras
-    const connectionConfig = process.env.DATABASE_URL 
-      ? {
-          // Para conexión por URL (Vercel/Supabase)
-          connectionString: process.env.DATABASE_URL,
-          dialect: 'postgres',
-          dialectOptions: {
-            ssl: {
-              require: true,
-              rejectUnauthorized: false
-            }
-          }
+    // Crear conexión REAL usando la URL directamente
+    sequelizeInstance = new Sequelize(process.env.DATABASE_URL, {
+      dialect: 'postgres',
+      dialectOptions: {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false
         }
-      : {
-          // Para variables individuales (desarrollo)
-          database: process.env.DB_NAME,
-          username: process.env.DB_USER,
-          password: process.env.DB_PASSWORD,
-          host: process.env.DB_HOST,
-          port: process.env.DB_PORT,
-          dialect: 'postgres',
-          dialectOptions: process.env.DB_SSL === 'true' ? {
-            ssl: {
-              require: true,
-              rejectUnauthorized: false
-            }
-          } : {}
-        };
-    
-    // 5. Crear instancia con manejo de errores
-    sequelizeInstance = new Sequelize(connectionConfig);
-    
-    // 6. Configurar pool mínimo para Vercel
-    sequelizeInstance.options.pool = {
-      max: 2,
-      min: 0,
-      acquire: 10000,
-      idle: 5000
-    };
+      },
+      pool: {
+        max: isVercel ? 2 : 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
+      },
+      logging: isVercel ? false : console.log
+    });
     
     console.log('✅ Instancia Sequelize creada');
     
-    // 7. Intentar autenticar (pero no bloquear si falla)
+    // Autenticar de forma asíncrona sin bloquear
     sequelizeInstance.authenticate()
-      .then(() => console.log('✅ Autenticación exitosa'))
+      .then(() => console.log('✅ Conexión DB exitosa'))
       .catch(err => {
-        console.warn('⚠️  No se pudo autenticar:', err.message);
-        console.log('⚠️  Continuando en modo limitado...');
+        console.error('❌ Error de autenticación:', err.message);
       });
     
     return sequelizeInstance;
     
   } catch (error) {
-    console.error('❌ ERROR CRÍTICO inicializando DB:', error.message);
-    
-    // Extraer información útil del error
-    if (error.message.includes('install pg package')) {
-      console.error('📌 PROBLEMA: El paquete pg no está disponible en Vercel');
-      console.error('📌 SOLUCIÓN: Usar --no-optional al instalar');
-    }
-    
-    // Usar conexión dummy como fallback
+    console.error('❌ ERROR inicializando DB:', error.message);
     sequelizeInstance = createDummyConnection();
     return sequelizeInstance;
   }
 };
 
-// Función para crear conexión dummy
+// Función para crear conexión dummy (fallback)
 function createDummyConnection() {
   console.log('🔄 Creando conexión dummy...');
   
-  const dummy = {
-    // Métodos básicos
-    authenticate: () => Promise.reject(new Error('Base de datos no disponible en Vercel')),
-    query: (sql, options) => {
-      console.log(`📝 Query dummy: ${typeof sql === 'string' ? sql.substring(0, 50) + '...' : 'SQL'}`);
-      return Promise.resolve([[], {}]);
-    },
-    sync: (options) => {
-      console.log('🔄 Sync dummy ejecutada');
-      return Promise.resolve();
-    },
+  return {
+    authenticate: () => Promise.reject(new Error('DB no disponible')),
+    query: () => Promise.resolve([[], {}]),
+    sync: () => Promise.resolve(),
     close: () => Promise.resolve(),
-    
-    // Para definir modelos
-    define: (name, attributes, options) => {
+    define: (name) => {
       console.log(`📋 Modelo dummy: ${name}`);
-      const model = {
+      return {
         name,
-        init: () => {},
-        findAll: (options) => {
-          console.log(`🔍 findAll dummy en ${name}`);
-          return Promise.resolve([]);
-        },
-        findOne: (options) => {
-          console.log(`🔍 findOne dummy en ${name}`);
-          return Promise.resolve(null);
-        },
-        create: (data, options) => {
-          console.log(`➕ create dummy en ${name}`);
-          return Promise.resolve({ id: Date.now(), ...data });
-        },
-        update: (values, options) => {
-          console.log(`✏️ update dummy en ${name}`);
-          return Promise.resolve([0]);
-        },
-        destroy: (options) => {
-          console.log(`🗑️ destroy dummy en ${name}`);
-          return Promise.resolve(0);
-        }
+        findAll: () => Promise.resolve([]),
+        findOne: () => Promise.resolve(null),
+        create: (data) => Promise.resolve({ id: Date.now(), ...data }),
+        update: () => Promise.resolve([0]),
+        destroy: () => Promise.resolve(0)
       };
-      return model;
     }
   };
-  
-  return dummy;
 }
 
-// Exportar la función de inicialización
 module.exports = initializeDatabase();
