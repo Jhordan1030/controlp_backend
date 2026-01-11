@@ -1,8 +1,47 @@
 // src/models/index.js
 const { DataTypes } = require('sequelize');
 
-// Importar sequelize desde database/index.js
-const sequelize = require('../database/index');
+// ========== IMPORTACIÓN SEGURA DE SEQUELIZE ==========
+console.log('🔄 Cargando modelos...');
+
+let sequelize;
+try {
+  sequelize = require('../database/index');
+  console.log('✅ Sequelize cargado desde database/index.js');
+} catch (error) {
+  console.error('❌ Error al cargar Sequelize:', error.message);
+  
+  // Crear instancia dummy
+  sequelize = {
+    define: (name, attributes, options) => {
+      console.warn(`⚠️  Creando modelo dummy: ${name}`);
+      const model = {
+        name,
+        init: () => {},
+        findAll: () => Promise.resolve([]),
+        findOne: () => Promise.resolve(null),
+        create: (data) => Promise.resolve({ id: Date.now(), ...data }),
+        update: (values, options) => Promise.resolve([0]),
+        destroy: (options) => Promise.resolve(0),
+        belongsTo: () => {},
+        hasMany: () => {},
+        belongsToMany: () => {}
+      };
+      return model;
+    },
+    authenticate: () => Promise.reject(new Error('Base de datos no disponible')),
+    sync: () => {
+      console.log('🔄 Sync dummy ejecutada');
+      return Promise.resolve();
+    },
+    query: (sql, options) => {
+      console.log(`📝 Query dummy: ${sql.substring(0, 50)}...`);
+      return Promise.resolve([[], {}]);
+    }
+  };
+  
+  console.log('⚠️  Usando Sequelize dummy (modo sin base de datos)');
+}
 
 // ========== DEFINICIÓN DE MODELOS ==========
 
@@ -178,84 +217,86 @@ const RegistroHora = sequelize.define('RegistroHora', {
 
 // ========== RELACIONES ==========
 
-// Universidad -> Periodos
-Universidad.hasMany(Periodo, {
-  foreignKey: 'universidad_id',
-  as: 'periodos'
-});
-Periodo.belongsTo(Universidad, {
-  foreignKey: 'universidad_id',
-  as: 'universidad'
-});
+try {
+  // Universidad -> Periodos
+  Universidad.hasMany(Periodo, {
+    foreignKey: 'universidad_id',
+    as: 'periodos'
+  });
+  Periodo.belongsTo(Universidad, {
+    foreignKey: 'universidad_id',
+    as: 'universidad'
+  });
 
-// Universidad -> Estudiantes
-Universidad.hasMany(Estudiante, {
-  foreignKey: 'universidad_id',
-  as: 'estudiantes'
-});
-Estudiante.belongsTo(Universidad, {
-  foreignKey: 'universidad_id',
-  as: 'universidad'
-});
+  // Universidad -> Estudiantes
+  Universidad.hasMany(Estudiante, {
+    foreignKey: 'universidad_id',
+    as: 'estudiantes'
+  });
+  Estudiante.belongsTo(Universidad, {
+    foreignKey: 'universidad_id',
+    as: 'universidad'
+  });
 
-// Periodo -> Estudiantes
-Periodo.hasMany(Estudiante, {
-  foreignKey: 'periodo_id',
-  as: 'estudiantes'
-});
-Estudiante.belongsTo(Periodo, {
-  foreignKey: 'periodo_id',
-  as: 'periodo'
-});
+  // Periodo -> Estudiantes
+  Periodo.hasMany(Estudiante, {
+    foreignKey: 'periodo_id',
+    as: 'estudiantes'
+  });
+  Estudiante.belongsTo(Periodo, {
+    foreignKey: 'periodo_id',
+    as: 'periodo'
+  });
 
-// Estudiante -> RegistrosHoras
-Estudiante.hasMany(RegistroHora, {
-  foreignKey: 'estudiante_id',
-  as: 'registros'
-});
-RegistroHora.belongsTo(Estudiante, {
-  foreignKey: 'estudiante_id',
-  as: 'estudiante'
-});
+  // Estudiante -> RegistrosHoras
+  Estudiante.hasMany(RegistroHora, {
+    foreignKey: 'estudiante_id',
+    as: 'registros'
+  });
+  RegistroHora.belongsTo(Estudiante, {
+    foreignKey: 'estudiante_id',
+    as: 'estudiante'
+  });
+  
+  console.log('✅ Relaciones establecidas');
+} catch (error) {
+  console.warn('⚠️  No se pudieron establecer relaciones:', error.message);
+}
 
-// ========== SINCORNIZACIÓN SEGURA ==========
+// ========== FUNCIONES DE BASE DE DATOS ==========
 
 const syncDatabase = async () => {
   try {
-    // Verificar si sequelize es válido
-    if (!sequelize || !sequelize.authenticate) {
-      console.warn('⚠️  Sequelize no está disponible - omitiendo sincronización');
+    console.log('🔄 Intentando sincronizar base de datos...');
+    
+    if (!sequelize || typeof sequelize.sync !== 'function') {
+      console.warn('⚠️  Sequelize no está disponible para sincronizar');
       return false;
     }
-
-    await sequelize.authenticate();
-    console.log('✅ Conexión a PostgreSQL establecida');
-
-    // Solo crear tablas si no existen
+    
     await sequelize.sync({ 
       force: false,
       alter: false
     });
     
-    console.log('✅ Modelos verificados');
+    console.log('✅ Base de datos sincronizada');
     return true;
     
   } catch (error) {
-    console.error('❌ Error al verificar modelos:', error.message);
+    console.error('❌ Error al sincronizar base de datos:', error.message);
     return false;
   }
 };
 
-// ========== VERIFICACIÓN DE TABLAS ==========
-
 const checkTables = async () => {
   try {
-    // Verificar si sequelize es válido
-    if (!sequelize || !sequelize.query) {
-      console.warn('⚠️  Sequelize no disponible - omitiendo verificación de tablas');
+    console.log('📊 Verificando tablas...');
+    
+    if (!sequelize || typeof sequelize.query !== 'function') {
+      console.warn('⚠️  No se puede verificar tablas - Sequelize no disponible');
       return [];
     }
-
+    
     const tables = ['universidades', 'periodos', 'estudiantes', 'administradores', 'registros_horas'];
     const results = [];
     
@@ -264,37 +305,48 @@ const checkTables = async () => {
         const [result] = await sequelize.query(
           `SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = '${table}')`
         );
-        const exists = result[0].exists;
+        const exists = result[0]?.exists || false;
         results.push({ table, exists });
         console.log(`${exists ? '✅' : '❌'} Tabla "${table}": ${exists ? 'EXISTE' : 'NO EXISTE'}`);
       } catch (err) {
-        console.error(`⚠️  Error verificando tabla "${table}":`, err.message);
+        console.warn(`⚠️  Error verificando tabla "${table}":`, err.message);
         results.push({ table, exists: false, error: err.message });
       }
     }
     
     return results;
   } catch (error) {
-    console.error('❌ Error verificando tablas:', error.message);
+    console.error('❌ Error general verificando tablas:', error.message);
     return [];
   }
 };
 
-// ========== INICIALIZACIÓN SEGURA ==========
-
 const initializeDatabase = async () => {
   console.log('🔧 Inicializando base de datos...');
   
-  // 1. Verificar conexión
   try {
-    if (!sequelize || !sequelize.authenticate) {
-      throw new Error('Sequelize no está disponible');
+    // 1. Verificar conexión
+    if (sequelize && typeof sequelize.authenticate === 'function') {
+      await sequelize.authenticate();
+      console.log('✅ Conexión establecida');
+    } else {
+      console.warn('⚠️  No se puede autenticar - usando modo dummy');
     }
     
-    await sequelize.authenticate();
-    console.log('✅ Conexión a PostgreSQL establecida');
+    // 2. Sincronizar
+    const syncResult = await syncDatabase();
+    
+    // 3. Verificar tablas
+    const tables = await checkTables();
+    
+    return {
+      connection: true,
+      syncResult,
+      tables
+    };
+    
   } catch (error) {
-    console.error('❌ No se pudo conectar a PostgreSQL:', error.message);
+    console.error('❌ Error inicializando base de datos:', error.message);
     return {
       connection: false,
       syncResult: false,
@@ -302,23 +354,11 @@ const initializeDatabase = async () => {
       error: error.message
     };
   }
-  
-  // 2. Intentar sincronizar
-  console.log('⚙️  Sincronizando modelos...');
-  const syncResult = await syncDatabase();
-  
-  // 3. Verificar tablas
-  console.log('📋 Verificando tablas...');
-  const tables = await checkTables();
-  
-  return {
-    connection: true,
-    syncResult,
-    tables
-  };
 };
 
 // ========== EXPORTACIONES ==========
+
+console.log('📦 Exportando modelos...');
 
 module.exports = {
   sequelize,
