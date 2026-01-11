@@ -10,8 +10,9 @@
     "db:test": "node test-connection.js",
     "db:sync": "node src/database/sync.js",
     "db:seed": "node src/database/seeders.js",
-    "build": "echo 'Building for Vercel'",
-    "vercel-build": "npm install"
+    "build": "echo 'Building for Vercel' && exit 0",
+    "vercel-build": "npm install && echo 'Vercel build complete'",
+    "vercel-dev": "vercel dev"
   },
   "keywords": [
     "practicas",
@@ -22,6 +23,10 @@
   "author": "Jhordan Huera",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": "18.x || 20.x",
+    "npm": ">=9.0.0"
+  },
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
