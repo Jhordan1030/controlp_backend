@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const { validationResult } = require('express-validator');
 const Estudiante = require('../models/Estudiante');
 const Administrador = require('../models/Administrador');
+const auditController = require('./auditController');
 
 const authController = {
     // LOGIN para admin o estudiante
@@ -40,6 +41,9 @@ const authController = {
 
             if (!usuario) {
                 console.log('❌ Usuario no encontrado en ninguna tabla');
+                // Auditoria fallo login
+                await auditController.logAction(req, 'LOGIN_FAILED', 'auth', null, { email, reason: 'User not found' });
+
                 return res.status(401).json({
                     success: false,
                     error: 'Credenciales inválidas (Usuario)'
@@ -53,6 +57,9 @@ const authController = {
 
             if (!passwordValida) {
                 console.log('❌ Contraseña incorrecta');
+                // Auditoria fallo login
+                await auditController.logAction(req, 'LOGIN_FAILED', 'auth', usuario.id, { email, reason: 'Password mismatch' });
+
                 return res.status(401).json({
                     success: false,
                     error: 'Credenciales inválidas (Password)'
@@ -72,6 +79,10 @@ const authController = {
             );
 
             console.log(`✅ Login exitoso: ${email} (${tipo})`);
+
+            // Simular usuario en req para auditoria ya que aún no hay middleware
+            req.user = { id: usuario.id, tipo };
+            await auditController.logAction(req, 'LOGIN_SUCCESS', 'auth', usuario.id, { email, tipo });
 
             res.json({
                 success: true,
@@ -138,6 +149,9 @@ const authController = {
             );
 
             console.log(`✅ PRIMER ADMINISTRADOR CREADO: ${email}`);
+
+            req.user = { id: admin.id, tipo: 'administrador' };
+            await auditController.logAction(req, 'CREATE_FIRST_ADMIN', 'administradores', admin.id, { email });
 
             res.status(201).json({
                 success: true,
@@ -208,6 +222,9 @@ const authController = {
 
             console.log(`✅ Estudiante registrado: ${email}`);
 
+            req.user = { id: estudiante.id, tipo: 'estudiante' };
+            await auditController.logAction(req, 'REGISTER_STUDENT', 'estudiantes', estudiante.id, { email });
+
             res.status(201).json({
                 success: true,
                 message: 'Estudiante registrado exitosamente',
@@ -264,6 +281,8 @@ const authController = {
 
             console.log(`✅ Nuevo administrador creado: ${email}`);
 
+            await auditController.logAction(req, 'CREATE_ADMIN', 'administradores', admin.id, { email, super_admin });
+
             res.status(201).json({
                 success: true,
                 message: 'Administrador creado exitosamente',
@@ -296,6 +315,7 @@ const authController = {
                 success: true,
                 message: 'Sesión cerrada exitosamente (Elimine el token de su cliente)'
             });
+            await auditController.logAction(req, 'LOGOUT', 'auth', null, null);
 
         } catch (error) {
             console.error('❌ Error en logout:', error);
