@@ -53,7 +53,6 @@ if (process.env.CORS_ORIGIN) {
 app.use(helmet());
 app.use(cors(corsOptions)); // <-- Usar la configuración dinámica
 
-// Rate limiting
 // Rate limiting general
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
