@@ -26,31 +26,38 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization']
 };
 
-// Si hay variable de entorno CORS_ORIGIN
+// Orígenes permitidos hardcoded (Dev y Prod conocidos)
+const whitelist = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://crontolp-frontend-git-dev-jhordans-projects-1df1d75c.vercel.app',
+  'https://controlp-backend.vercel.app'
+];
+
+// Si hay variable de entorno CORS_ORIGIN, agregarla
 if (process.env.CORS_ORIGIN) {
-  // Verificar si es un string con múltiples orígenes
   if (process.env.CORS_ORIGIN.includes(',')) {
-    const allowedOrigins = process.env.CORS_ORIGIN.split(',').map(origin => origin.trim());
-
-    corsOptions.origin = function (origin, callback) {
-      // Permite requests sin origen (como mobile apps o curl)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        return callback(null, origin);
-      } else {
-        const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-        return callback(new Error(msg), false);
-      }
-    };
+    whitelist.push(...process.env.CORS_ORIGIN.split(',').map(o => o.trim()));
   } else {
-    // Solo un origen
-    corsOptions.origin = process.env.CORS_ORIGIN;
+    whitelist.push(process.env.CORS_ORIGIN);
   }
-} else {
-  // Valor por defecto para desarrollo
-  corsOptions.origin = 'http://localhost:5173';
 }
+
+// Eliminar duplicados
+const allowedOrigins = [...new Set(whitelist)];
+
+corsOptions.origin = function (origin, callback) {
+  // Permite requests sin origen (como mobile apps o curl)
+  if (!origin) return callback(null, true);
+
+  if (allowedOrigins.indexOf(origin) !== -1) {
+    return callback(null, origin);
+  } else {
+    // Modo permisivo para evitar bloqueos en pre-flight opcionalmente
+    const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+    return callback(new Error(msg), false);
+  }
+};
 
 // Middlewares de seguridad
 app.use(helmet());
