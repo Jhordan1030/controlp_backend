@@ -8,7 +8,7 @@ const Universidad = sequelize.define('Universidad', {
         primaryKey: true
     },
     nombre: {
-        type: DataTypes.STRING(100),
+        type: DataTypes.STRING,
         allowNull: false,
         unique: true
     },

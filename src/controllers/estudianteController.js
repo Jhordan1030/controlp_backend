@@ -1,5 +1,5 @@
 // ==================== src/controllers/estudianteController.js ====================
-const { Estudiante, RegistroHora, Universidad, Periodo } = require('../models');
+const { Estudiante, RegistroHora, Universidad, Periodo, Matriculacion } = require('../models');
 
 const estudianteController = {
     // PERFIL (versión sin includes)
@@ -144,6 +144,21 @@ const estudianteController = {
                 });
             }
 
+            // Verificar matrícula activa
+            const matricula = await Matriculacion.findOne({
+                where: {
+                    estudiante_id: req.user.id,
+                    activa: true
+                }
+            });
+
+            if (!matricula) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'No tienes una matrícula activa para registrar horas.'
+                });
+            }
+
             // Verificar duplicado
             const existeRegistro = await RegistroHora.findOne({
                 where: {
@@ -163,8 +178,11 @@ const estudianteController = {
                 estudiante_id: req.user.id,
                 fecha,
                 horas: horasNum,
-                descripcion: descripcion.trim()
+                descripcion: descripcion.trim(),
+                matriculacion_id: matricula.id
             });
+
+            console.log(`✅ Horas registradas: ${horasNum}h - ${descripcion.substring(0, 20)}... (${req.user.email})`);
 
             res.status(201).json({
                 success: true,

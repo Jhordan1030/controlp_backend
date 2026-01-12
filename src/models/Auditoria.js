@@ -12,15 +12,15 @@ const Auditoria = sequelize.define('Auditoria', {
         allowNull: true
     },
     usuario_tipo: {
-        type: DataTypes.STRING(20),
+        type: DataTypes.STRING,
         allowNull: true
     },
     accion: {
-        type: DataTypes.STRING(50),
+        type: DataTypes.STRING,
         allowNull: false
     },
     tabla_afectada: {
-        type: DataTypes.STRING(50),
+        type: DataTypes.STRING,
         allowNull: true
     },
     registro_id: {
@@ -32,7 +32,8 @@ const Auditoria = sequelize.define('Auditoria', {
         allowNull: true
     },
     ip_address: {
-        type: DataTypes.INET,
+        // Using STRING to correspond to 'inet' safely
+        type: DataTypes.STRING,
         allowNull: true
     },
     user_agent: {
@@ -43,7 +44,7 @@ const Auditoria = sequelize.define('Auditoria', {
     tableName: 'auditoria',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: false // No tiene updated_at
+    updatedAt: false
 });
 
 module.exports = Auditoria;

@@ -1,42 +1,37 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../database');
 
-const Periodo = sequelize.define('Periodo', {
+const Sesion = sequelize.define('Sesion', {
     id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
     },
-    universidad_id: {
+    usuario_id: {
         type: DataTypes.UUID,
         allowNull: false
     },
-    nombre: {
+    usuario_tipo: {
+        type: DataTypes.STRING, // Handling USER-DEFINED as STRING for now
+        allowNull: false
+    },
+    token_hash: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    fecha_inicio: {
-        type: DataTypes.DATEONLY,
+    expira_en: {
+        type: DataTypes.DATE, // timestamp with time zone
         allowNull: false
     },
-    fecha_fin: {
-        type: DataTypes.DATEONLY,
-        allowNull: false
-    },
-    horas_totales_requeridas: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 0
-    },
-    activo: {
+    activa: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
     }
 }, {
-    tableName: 'periodos',
+    tableName: 'sesiones',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: false // Schema doesn't mention updated_at for sesiones
 });
 
-module.exports = Periodo;
+module.exports = Sesion;

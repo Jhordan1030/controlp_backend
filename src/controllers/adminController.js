@@ -1,11 +1,12 @@
 const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
-const { Universidad, Estudiante, Periodo, Administrador, RegistroHora } = require('../models');
+const { Universidad, Estudiante, Periodo, Administrador, RegistroHora, Matriculacion } = require('../models');
 
 const adminController = {
     // DASHBOARD
     dashboard: async (req, res) => {
         try {
+            console.log('📊 Cargando dashboard de administrador...');
             const totalUniversidades = await Universidad.count();
             const totalEstudiantes = await Estudiante.count();
             const totalPeriodos = await Periodo.count();
@@ -113,6 +114,8 @@ const adminController = {
                 activa: true
             });
 
+            console.log(`✅ Universidad creada: ${universidad.nombre}`);
+
             res.status(201).json({
                 success: true,
                 message: 'Universidad creada exitosamente',
@@ -164,6 +167,8 @@ const adminController = {
                 activa: activa !== undefined ? activa : universidad.activa
             });
 
+            console.log(`✅ Universidad actualizada: ${universidad.nombre}`);
+
             res.json({
                 success: true,
                 message: 'Universidad actualizada exitosamente',
@@ -197,6 +202,8 @@ const adminController = {
             await universidad.update({
                 activa: nuevoEstado
             });
+
+            console.log(`🔄 Universidad ${nuevoEstado ? 'activada' : 'desactivada'}: ${universidad.nombre}`);
 
             res.json({
                 success: true,
@@ -257,6 +264,8 @@ const adminController = {
             }
 
             await universidad.destroy();
+
+            console.log(`🗑️ Universidad eliminada ID: ${id}`);
 
             res.json({
                 success: true,
@@ -365,6 +374,8 @@ const adminController = {
                 activo: true
             });
 
+            console.log(`✅ Periodo creado: ${periodo.nombre}`);
+
             res.status(201).json({
                 success: true,
                 message: 'Periodo creado exitosamente',
@@ -412,6 +423,8 @@ const adminController = {
                 activo: activo !== undefined ? activo : periodo.activo
             });
 
+            console.log(`✅ Periodo actualizado: ${periodo.nombre}`);
+
             res.json({
                 success: true,
                 message: 'Periodo actualizado exitosamente',
@@ -445,6 +458,8 @@ const adminController = {
             await periodo.update({
                 activo: nuevoEstado
             });
+
+            console.log(`🔄 Periodo ${nuevoEstado ? 'activado' : 'desactivado'}: ${periodo.nombre}`);
 
             res.json({
                 success: true,
@@ -493,6 +508,7 @@ const adminController = {
             }
 
             await periodo.destroy();
+            console.log(`🗑️ Periodo eliminado ID: ${id}`);
 
             res.json({
                 success: true,
@@ -612,8 +628,11 @@ const adminController = {
             }
 
             // Verificar universidad y periodo si se proporcionan
+            let universidad = null;
+            let periodo = null;
+
             if (universidad_id) {
-                const universidad = await Universidad.findByPk(universidad_id);
+                universidad = await Universidad.findByPk(universidad_id);
                 if (!universidad) {
                     return res.status(404).json({
                         success: false,
@@ -623,11 +642,19 @@ const adminController = {
             }
 
             if (periodo_id) {
-                const periodo = await Periodo.findByPk(periodo_id);
+                periodo = await Periodo.findByPk(periodo_id);
                 if (!periodo) {
                     return res.status(404).json({
                         success: false,
                         error: 'Periodo no encontrado'
+                    });
+                }
+
+                // Verificar que el periodo pertenezca a la universidad
+                if (universidad_id && periodo.universidad_id !== universidad_id) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'El periodo no pertenece a la universidad seleccionada'
                     });
                 }
             }
@@ -643,6 +670,28 @@ const adminController = {
                 periodo_id: periodo_id || null,
                 activo: true
             });
+
+            console.log(`✅ Estudiante creado: ${estudiante.email}`);
+
+            // === LÓGICA DE MATRICULACIÓN AUTOMÁTICA ===
+            // Si tiene periodo asignado, le creamos una matrícula activa
+            if (periodo_id) {
+                try {
+                    await Matriculacion.create({
+                        estudiante_id: estudiante.id,
+                        periodo_id: periodo_id,
+                        fecha_matricula: new Date(),
+                        activa: true,
+                        horas_acumuladas: 0,
+                        horas_aprobadas: 0,
+                        porcentaje_completado: 0
+                    });
+                    console.log(`✅ Matrícula automática creada para: ${estudiante.email} en periodo ${periodo_id}`);
+                } catch (matriculaError) {
+                    console.error('⚠️ Error al crear matrícula automática:', matriculaError);
+                    // No fallamos el request entero, pero logueamos el error
+                }
+            }
 
             res.status(201).json({
                 success: true,
@@ -707,13 +756,53 @@ const adminController = {
                 }
             }
 
+            // Lógica de cambio de periodo y rematriculación
             if (periodo_id) {
                 const periodo = await Periodo.findByPk(periodo_id);
                 if (!periodo) {
                     return res.status(404).json({
                         success: false,
-                        error: 'Periodo no encontrada'
+                        error: 'Periodo no encontrado'
                     });
+                }
+
+                // Si se está cambiando de periodo (o asignando uno nuevo)
+                if (periodo_id !== estudiante.periodo_id) {
+                    // 1. Desactivar matrículas anteriores (opcional, pero recomendado para mantener limpieza)
+                    await Matriculacion.update(
+                        { activa: false },
+                        { where: { estudiante_id: id, activa: true } }
+                    );
+
+                    // 2. Verificar si ya existe una matrícula para este nuevo periodo (aunque sea inactiva)
+                    let matriculaNueva = await Matriculacion.findOne({
+                        where: {
+                            estudiante_id: id,
+                            periodo_id: periodo_id
+                        }
+                    });
+
+                    if (matriculaNueva) {
+                        // Si ya existe, reactivarla
+                        await matriculaNueva.update({ activa: true });
+                        console.log(`🔄 Matrícula reactivada para: ${estudiante.email} en periodo ${periodo.nombre}`);
+                    } else {
+                        // Si no existe, crear nueva
+                        try {
+                            await Matriculacion.create({
+                                estudiante_id: id,
+                                periodo_id: periodo_id,
+                                fecha_matricula: new Date(),
+                                activa: true,
+                                horas_acumuladas: 0,
+                                horas_aprobadas: 0,
+                                porcentaje_completado: 0
+                            });
+                            console.log(`✅ Nueva matrícula creada por cambio de periodo: ${estudiante.email} -> ${periodo.nombre}`);
+                        } catch (err) {
+                            console.error('⚠️ Error creando matrícula al actualizar estudiante:', err);
+                        }
+                    }
                 }
             }
 
@@ -725,6 +814,8 @@ const adminController = {
                 periodo_id: periodo_id !== undefined ? periodo_id : estudiante.periodo_id,
                 activo: activo !== undefined ? activo : estudiante.activo
             });
+
+            console.log(`✅ Estudiante actualizado: ${estudiante.email}`);
 
             res.json({
                 success: true,

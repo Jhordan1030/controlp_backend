@@ -1,42 +1,37 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../database');
 
-const Periodo = sequelize.define('Periodo', {
+const Evidencia = sequelize.define('Evidencia', {
     id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
     },
-    universidad_id: {
+    registro_horas_id: {
         type: DataTypes.UUID,
         allowNull: false
     },
-    nombre: {
+    nombre_archivo: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    fecha_inicio: {
-        type: DataTypes.DATEONLY,
+    url: {
+        type: DataTypes.TEXT,
         allowNull: false
     },
-    fecha_fin: {
-        type: DataTypes.DATEONLY,
-        allowNull: false
+    tipo_archivo: {
+        type: DataTypes.STRING,
+        allowNull: true
     },
-    horas_totales_requeridas: {
+    tamanio_bytes: {
         type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 0
-    },
-    activo: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: true
+        allowNull: true
     }
 }, {
-    tableName: 'periodos',
+    tableName: 'evidencias',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: false
 });
 
-module.exports = Periodo;
+module.exports = Evidencia;

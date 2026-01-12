@@ -25,6 +25,7 @@ function createDummyConnection() {
                 destroy: () => Promise.resolve(0),
                 belongsTo: () => { },
                 hasMany: () => { },
+                hasOne: () => { },
                 belongsToMany: () => { }
             };
         }
@@ -40,25 +41,38 @@ const getSequelize = () => {
         const isVercel = process.env.VERCEL === '1' || process.env.NODE_ENV === 'production';
         console.log(isVercel ? '🌍 Entorno: Vercel/Production' : '💻 Entorno: Local');
 
-        // Si no hay DATABASE_URL, usar dummy
-        if (!process.env.DATABASE_URL) {
-            console.warn('⚠️  No DATABASE_URL configurada - usando modo dummy');
+        // Construir URL de conexión si no existe pero tenemos las credenciales individuales
+        let connectionUrl = process.env.DATABASE_URL;
+        if (!connectionUrl && process.env.DB_HOST && process.env.DB_USER && process.env.DB_NAME) {
+            console.log('ℹ️  Usando credenciales individuales del .env');
+            const { DB_USER, DB_PASSWORD, DB_HOST, DB_PORT, DB_NAME } = process.env;
+            connectionUrl = `postgres://${DB_USER}:${DB_PASSWORD || ''}@${DB_HOST}:${DB_PORT || 5432}/${DB_NAME}`;
+        }
+
+        // Si no hay DATABASE_URL ni credenciales completas, usar dummy
+        if (!connectionUrl) {
+            console.warn('⚠️  No DATABASE_URL ni credenciales completas configuradas - usando modo dummy');
             sequelizeInstance = createDummyConnection();
             return sequelizeInstance;
         }
 
         console.log('🔌 Conectando a PostgreSQL...');
 
+        // Configuración SSL: requerida para Vercel/Render, opcional para local
+        // En local, muchas veces no se tiene SSL configurado en postgres.
+        const dialectOptions = {};
+        if (isVercel || process.env.DB_SSL === 'true') {
+            dialectOptions.ssl = {
+                require: true,
+                rejectUnauthorized: false
+            };
+        }
+
         // Crear conexión REAL
-        sequelizeInstance = new Sequelize(process.env.DATABASE_URL, {
+        sequelizeInstance = new Sequelize(connectionUrl, {
             dialect: 'postgres',
-            dialectModule: pg, // <--- SOLUCIÓN PARA VERCEL: Pasar el módulo explícitamente
-            dialectOptions: {
-                ssl: {
-                    require: true,
-                    rejectUnauthorized: false
-                }
-            },
+            dialectModule: pg,
+            dialectOptions,
             pool: {
                 max: isVercel ? 2 : 5,
                 min: 0,

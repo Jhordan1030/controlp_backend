@@ -16,20 +16,20 @@ const Estudiante = sequelize.define('Estudiante', {
         allowNull: true
     },
     nombres: {
-        type: DataTypes.STRING(100),
+        type: DataTypes.STRING,
         allowNull: false
     },
     apellidos: {
-        type: DataTypes.STRING(100),
+        type: DataTypes.STRING,
         allowNull: false
     },
     email: {
-        type: DataTypes.STRING(100),
+        type: DataTypes.STRING,
         allowNull: false,
         unique: true
     },
     password_hash: {
-        type: DataTypes.STRING(255),
+        type: DataTypes.STRING,
         allowNull: false
     },
     activo: {

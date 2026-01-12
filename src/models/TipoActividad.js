@@ -1,38 +1,33 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../database');
 
-const Administrador = sequelize.define('Administrador', {
+const TipoActividad = sequelize.define('TipoActividad', {
     id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true
     },
-    nombres: {
+    nombre: {
         type: DataTypes.STRING,
         allowNull: false
     },
-    email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true
+    descripcion: {
+        type: DataTypes.TEXT,
+        allowNull: true
     },
-    password_hash: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    super_admin: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: false
+    universidad_id: {
+        type: DataTypes.UUID,
+        allowNull: true
     },
     activo: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
     }
 }, {
-    tableName: 'administradores',
+    tableName: 'tipos_actividad',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at'
 });
 
-module.exports = Administrador;
+module.exports = TipoActividad;
