@@ -26,23 +26,25 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization']
 };
 
-// Definir orígenes permitidos por defecto
-const defaultOrigins = [
+// Orígenes permitidos hardcoded (Dev y Prod conocidos)
+const whitelist = [
   'http://localhost:5173',
   'http://localhost:3000',
-  'https://controlp-frontend.vercel.app',
-  'https://crontolp-frontend.vercel.app',
+  'https://crontolp-frontend-git-dev-jhordans-projects-1df1d75c.vercel.app',
   'https://controlp-backend.vercel.app'
 ];
 
 // Si hay variable de entorno CORS_ORIGIN, agregarla
 if (process.env.CORS_ORIGIN) {
-  const envOrigins = process.env.CORS_ORIGIN.split(',').map(o => o.trim());
-  defaultOrigins.push(...envOrigins);
+  if (process.env.CORS_ORIGIN.includes(',')) {
+    whitelist.push(...process.env.CORS_ORIGIN.split(',').map(o => o.trim()));
+  } else {
+    whitelist.push(process.env.CORS_ORIGIN);
+  }
 }
 
 // Eliminar duplicados
-const allowedOrigins = [...new Set(defaultOrigins)];
+const allowedOrigins = [...new Set(whitelist)];
 
 corsOptions.origin = function (origin, callback) {
   // Permite requests sin origen (como mobile apps o curl)
@@ -51,8 +53,7 @@ corsOptions.origin = function (origin, callback) {
   if (allowedOrigins.indexOf(origin) !== -1) {
     return callback(null, origin);
   } else {
-    // Modo permisivo temporal si falla la validación exacta (debug)
-    // Opcional: callback(null, origin); 
+    // Modo permisivo para evitar bloqueos en pre-flight opcionalmente
     const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
     return callback(new Error(msg), false);
   }

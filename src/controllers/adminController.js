@@ -1,10 +1,6 @@
-// ==================== src/controllers/adminController.js ====================
+const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
-const Universidad = require('../models/Universidad');
-const Estudiante = require('../models/Estudiante');
-const Periodo = require('../models/Periodo');
-const Administrador = require('../models/Administrador');
-const RegistroHora = require('../models/RegistroHora');
+const { Universidad, Estudiante, Periodo, Administrador, RegistroHora } = require('../models');
 
 const adminController = {
     // DASHBOARD
@@ -38,7 +34,7 @@ const adminController = {
     },
 
     // ========== CRUD UNIVERSIDADES ==========
-    
+
     // LISTAR UNIVERSIDADES
     listarUniversidades: async (req, res) => {
         try {
@@ -53,9 +49,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en listarUniversidades:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al obtener universidades' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al obtener universidades'
             });
         }
     },
@@ -80,9 +76,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en obtenerUniversidad:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al obtener universidad' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al obtener universidad'
             });
         }
     },
@@ -99,12 +95,12 @@ const adminController = {
                 });
             }
 
-            const existe = await Universidad.findOne({ 
-                where: { 
-                    nombre: nombre.trim() 
-                } 
+            const existe = await Universidad.findOne({
+                where: {
+                    nombre: nombre.trim()
+                }
             });
-            
+
             if (existe) {
                 return res.status(400).json({
                     success: false,
@@ -124,9 +120,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en crearUniversidad:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al crear universidad' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al crear universidad'
             });
         }
     },
@@ -148,13 +144,13 @@ const adminController = {
 
             // Si se cambia el nombre, verificar que no exista ya
             if (nombre && nombre.trim() !== universidad.nombre) {
-                const existe = await Universidad.findOne({ 
-                    where: { 
+                const existe = await Universidad.findOne({
+                    where: {
                         nombre: nombre.trim(),
-                        id: { $ne: id } // Excluir la universidad actual
-                    } 
+                        id: { [Op.ne]: id } // Excluir la universidad actual
+                    }
                 });
-                
+
                 if (existe) {
                     return res.status(400).json({
                         success: false,
@@ -175,9 +171,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en actualizarUniversidad:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al actualizar universidad' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al actualizar universidad'
             });
         }
     },
@@ -197,15 +193,15 @@ const adminController = {
             }
 
             const nuevoEstado = !universidad.activa;
-            
+
             await universidad.update({
                 activa: nuevoEstado
             });
 
             res.json({
                 success: true,
-                message: nuevoEstado ? 
-                    'Universidad activada exitosamente' : 
+                message: nuevoEstado ?
+                    'Universidad activada exitosamente' :
                     'Universidad desactivada exitosamente',
                 universidad: {
                     id: universidad.id,
@@ -215,9 +211,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en toggleUniversidad:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al cambiar estado de la universidad' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al cambiar estado de la universidad'
             });
         }
     },
@@ -237,8 +233,8 @@ const adminController = {
             }
 
             // Verificar si tiene periodos asociados
-            const periodosCount = await Periodo.count({ 
-                where: { universidad_id: id } 
+            const periodosCount = await Periodo.count({
+                where: { universidad_id: id }
             });
 
             if (periodosCount > 0) {
@@ -249,8 +245,8 @@ const adminController = {
             }
 
             // Verificar si tiene estudiantes asociados
-            const estudiantesCount = await Estudiante.count({ 
-                where: { universidad_id: id } 
+            const estudiantesCount = await Estudiante.count({
+                where: { universidad_id: id }
             });
 
             if (estudiantesCount > 0) {
@@ -268,15 +264,15 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en eliminarUniversidad:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al eliminar universidad' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al eliminar universidad'
             });
         }
     },
 
     // ========== CRUD PERIODOS ==========
-    
+
     // LISTAR PERIODOS (versión sin includes temporalmente)
     listarPeriodos: async (req, res) => {
         try {
@@ -291,9 +287,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en listarPeriodos:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al obtener periodos' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al obtener periodos'
             });
         }
     },
@@ -318,9 +314,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en obtenerPeriodo:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al obtener periodo' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al obtener periodo'
             });
         }
     },
@@ -376,9 +372,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en crearPeriodo:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al crear periodo' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al crear periodo'
             });
         }
     },
@@ -423,9 +419,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en actualizarPeriodo:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al actualizar periodo' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al actualizar periodo'
             });
         }
     },
@@ -445,15 +441,15 @@ const adminController = {
             }
 
             const nuevoEstado = !periodo.activo;
-            
+
             await periodo.update({
                 activo: nuevoEstado
             });
 
             res.json({
                 success: true,
-                message: nuevoEstado ? 
-                    'Periodo activado exitosamente' : 
+                message: nuevoEstado ?
+                    'Periodo activado exitosamente' :
                     'Periodo desactivado exitosamente',
                 periodo: {
                     id: periodo.id,
@@ -463,9 +459,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en togglePeriodo:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al cambiar estado del periodo' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al cambiar estado del periodo'
             });
         }
     },
@@ -485,8 +481,8 @@ const adminController = {
             }
 
             // Verificar si tiene estudiantes asociados
-            const estudiantesCount = await Estudiante.count({ 
-                where: { periodo_id: id } 
+            const estudiantesCount = await Estudiante.count({
+                where: { periodo_id: id }
             });
 
             if (estudiantesCount > 0) {
@@ -504,15 +500,15 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en eliminarPeriodo:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al eliminar periodo' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al eliminar periodo'
             });
         }
     },
 
     // ========== CRUD ESTUDIANTES ==========
-    
+
     // LISTAR ESTUDIANTES (versión sin includes temporalmente)
     listarEstudiantes: async (req, res) => {
         try {
@@ -527,9 +523,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en listarEstudiantes:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al obtener estudiantes' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al obtener estudiantes'
             });
         }
     },
@@ -568,9 +564,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en obtenerEstudiante:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al obtener estudiante' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al obtener estudiante'
             });
         }
     },
@@ -655,9 +651,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en crearEstudiante:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al crear estudiante' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al crear estudiante'
             });
         }
     },
@@ -679,17 +675,17 @@ const adminController = {
 
             // Si se cambia el email, verificar que no exista ya
             if (email && email.trim() !== estudiante.email) {
-                const existeEstudiante = await Estudiante.findOne({ 
-                    where: { 
+                const existeEstudiante = await Estudiante.findOne({
+                    where: {
                         email: email.trim(),
-                        id: { $ne: id }
-                    } 
+                        id: { [Op.ne]: id }
+                    }
                 });
-                
-                const existeAdmin = await Administrador.findOne({ 
-                    where: { 
-                        email: email.trim() 
-                    } 
+
+                const existeAdmin = await Administrador.findOne({
+                    where: {
+                        email: email.trim()
+                    }
                 });
 
                 if (existeEstudiante || existeAdmin) {
@@ -737,9 +733,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en actualizarEstudiante:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al actualizar estudiante' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al actualizar estudiante'
             });
         }
     },
@@ -759,15 +755,15 @@ const adminController = {
             }
 
             const nuevoEstado = !estudiante.activo;
-            
+
             await estudiante.update({
                 activo: nuevoEstado
             });
 
             res.json({
                 success: true,
-                message: nuevoEstado ? 
-                    'Estudiante activado exitosamente' : 
+                message: nuevoEstado ?
+                    'Estudiante activado exitosamente' :
                     'Estudiante desactivado exitosamente',
                 estudiante: {
                     id: estudiante.id,
@@ -779,9 +775,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en toggleEstudiante:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al cambiar estado del estudiante' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al cambiar estado del estudiante'
             });
         }
     },
@@ -820,9 +816,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en reestablecerPassword:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al reestablecer contraseña' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al reestablecer contraseña'
             });
         }
     },
@@ -842,8 +838,8 @@ const adminController = {
             }
 
             // Verificar si tiene registros de horas
-            const registrosCount = await RegistroHora.count({ 
-                where: { estudiante_id: id } 
+            const registrosCount = await RegistroHora.count({
+                where: { estudiante_id: id }
             });
 
             if (registrosCount > 0) {
@@ -861,9 +857,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en eliminarEstudiante:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al eliminar estudiante' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al eliminar estudiante'
             });
         }
     },
@@ -907,9 +903,9 @@ const adminController = {
             });
         } catch (error) {
             console.error('❌ Error en estadisticasEstudiante:', error);
-            res.status(500).json({ 
-                success: false, 
-                error: 'Error al obtener estadísticas del estudiante' 
+            res.status(500).json({
+                success: false,
+                error: 'Error al obtener estadísticas del estudiante'
             });
         }
     }
