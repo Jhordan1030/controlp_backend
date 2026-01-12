@@ -26,31 +26,37 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization']
 };
 
-// Si hay variable de entorno CORS_ORIGIN
+// Definir orígenes permitidos por defecto
+const defaultOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'https://controlp-frontend.vercel.app',
+  'https://crontolp-frontend.vercel.app',
+  'https://controlp-backend.vercel.app'
+];
+
+// Si hay variable de entorno CORS_ORIGIN, agregarla
 if (process.env.CORS_ORIGIN) {
-  // Verificar si es un string con múltiples orígenes
-  if (process.env.CORS_ORIGIN.includes(',')) {
-    const allowedOrigins = process.env.CORS_ORIGIN.split(',').map(origin => origin.trim());
-
-    corsOptions.origin = function (origin, callback) {
-      // Permite requests sin origen (como mobile apps o curl)
-      if (!origin) return callback(null, true);
-
-      if (allowedOrigins.indexOf(origin) !== -1) {
-        return callback(null, origin);
-      } else {
-        const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-        return callback(new Error(msg), false);
-      }
-    };
-  } else {
-    // Solo un origen
-    corsOptions.origin = process.env.CORS_ORIGIN;
-  }
-} else {
-  // Valor por defecto para desarrollo
-  corsOptions.origin = 'http://localhost:5173';
+  const envOrigins = process.env.CORS_ORIGIN.split(',').map(o => o.trim());
+  defaultOrigins.push(...envOrigins);
 }
+
+// Eliminar duplicados
+const allowedOrigins = [...new Set(defaultOrigins)];
+
+corsOptions.origin = function (origin, callback) {
+  // Permite requests sin origen (como mobile apps o curl)
+  if (!origin) return callback(null, true);
+
+  if (allowedOrigins.indexOf(origin) !== -1) {
+    return callback(null, origin);
+  } else {
+    // Modo permisivo temporal si falla la validación exacta (debug)
+    // Opcional: callback(null, origin); 
+    const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+    return callback(new Error(msg), false);
+  }
+};
 
 // Middlewares de seguridad
 app.use(helmet());
