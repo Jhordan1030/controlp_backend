@@ -30,8 +30,8 @@ const corsOptions = {
 const whitelist = [
   'http://localhost:5173',
   'http://localhost:3000',
-  'https://crontolp-frontend-git-dev-jhordans-projects-1df1d75c.vercel.app',
-  'https://crontolp-frontend.vercel.app', // Production specific (typo domain)
+  'https://controlp-frontend-git-dev-jhordans-projects-1df1d75c.vercel.app',
+  'https://controlp-frontend.vercel.app', // Production specific (typo domain)
   'https://controlp-frontend.vercel.app', // Production correct domain (just in case)
   'https://controlp-backend.vercel.app'
 ];
