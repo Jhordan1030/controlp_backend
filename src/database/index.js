@@ -79,8 +79,7 @@ const getSequelize = () => {
                 acquire: 30000,
                 idle: 10000
             },
-            logging: isVercel ? false : console.log,
-            benchmark: true
+            logging: false, // Logging desactivado por petición del usuario
         });
 
         // Autenticación asíncrona (no bloqueante)

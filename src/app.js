@@ -3,7 +3,6 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
-const rateLimit = require('express-rate-limit');
 const hpp = require('hpp');
 const compression = require('compression');
 
@@ -50,23 +49,29 @@ if (process.env.CORS_ORIGIN) {
 // Eliminar duplicados
 const allowedOrigins = [...new Set(whitelist)];
 
-corsOptions.origin = function (origin, callback) {
+const originCheck = (origin, callback) => {
   // Permite requests sin origen (como mobile apps o curl)
   if (!origin) return callback(null, true);
 
   if (allowedOrigins.indexOf(origin) !== -1) {
     return callback(null, origin);
   } else {
-    // Modo permisivo para evitar bloqueos en pre-flight opcionalmente
+    // Modo permisivo para evitar bloqueos en pre-flight
+    // console.warn(`Blocked CORS for origin: ${origin}`); // Debugging
     const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
     return callback(new Error(msg), false);
   }
 };
 
+corsOptions.origin = originCheck;
+
 // Middlewares de seguridad
+// IMPORTANTE: CORS debe ir PRIMERO para manejar pre-flight OPTIONS correctamente antes de cualquier otra cosa
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions)); // Habilitar pre-flight explícitamente (Express 5: RegExp para match all)
+
 app.use(helmet());
 app.use(compression()); // Compresión Gzip
-app.use(cors(corsOptions)); // <-- Usar la configuración dinámica
 
 // Rate limiting general
 const limiter = rateLimit({
