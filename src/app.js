@@ -3,7 +3,9 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const rateLimit = require('express-rate-limit');
 const hpp = require('hpp');
+const compression = require('compression');
 
 // Importar rutas
 const authRoutes = require('./routes/authRoutes');
@@ -63,6 +65,7 @@ corsOptions.origin = function (origin, callback) {
 
 // Middlewares de seguridad
 app.use(helmet());
+app.use(compression()); // Compresión Gzip
 app.use(cors(corsOptions)); // <-- Usar la configuración dinámica
 
 // Rate limiting general

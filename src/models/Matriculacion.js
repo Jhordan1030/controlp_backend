@@ -39,7 +39,14 @@ const Matriculacion = sequelize.define('Matriculacion', {
     tableName: 'matriculaciones',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
+    indexes: [
+        {
+            name: 'matriculaciones_estudiante_id_periodo_id',
+            unique: true,
+            fields: ['estudiante_id', 'periodo_id']
+        }
+    ]
 });
 
 module.exports = Matriculacion;

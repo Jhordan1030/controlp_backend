@@ -67,7 +67,21 @@ const RegistroHora = sequelize.define('RegistroHora', {
     tableName: 'registros_horas',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
+    indexes: [
+        {
+            name: 'idx_registros_estudiante',
+            fields: ['estudiante_id']
+        },
+        {
+            name: 'idx_registros_fecha',
+            fields: ['fecha']
+        },
+        {
+            name: 'idx_registros_estudiante_fecha',
+            fields: ['estudiante_id', 'fecha']
+        }
+    ]
 });
 
 module.exports = RegistroHora;

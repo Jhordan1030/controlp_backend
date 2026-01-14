@@ -47,6 +47,7 @@ const estudianteController = {
     dashboard: async (req, res) => {
         try {
             // Incluir Universidad y Periodo en la consulta
+            // Incluir Estudiante, Universidad y Periodo en la consulta
             const estudiante = await Estudiante.findByPk(req.user.id, {
                 include: [
                     {
@@ -69,15 +70,19 @@ const estudianteController = {
                 });
             }
 
+            // OPTIMIZACIÓN: Obtener total de horas REAL (sumando todo en la DB)
+            const totalHoras = await RegistroHora.sum('horas', {
+                where: { estudiante_id: req.user.id }
+            }) || 0;
+
+            // Obtener últimos registros para mostrar
             const registros = await RegistroHora.findAll({
                 where: { estudiante_id: req.user.id },
                 order: [['fecha', 'DESC']],
                 limit: 10
             });
 
-            const totalHoras = registros.reduce((sum, reg) =>
-                sum + parseFloat(reg.horas), 0
-            );
+            // (totalHoras ya se calculó arriba correctamente)
 
             // Obtener datos del periodo
             const horasRequeridas = estudiante.periodo ? estudiante.periodo.horas_totales_requeridas : 0;
@@ -383,8 +388,10 @@ const estudianteController = {
         }
     },
     // NUEVO: OBTENER HISTORIAL DE PERIODOS (vía Matriculaciones)
+    // NUEVO: OBTENER HISTORIAL DE PERIODOS (vía Matriculaciones)
     misPeriodos: async (req, res) => {
         try {
+            // 1. Obtener todas las matrículas con sus periodos
             const matriculas = await Matriculacion.findAll({
                 where: { estudiante_id: req.user.id },
                 include: [{
@@ -395,23 +402,40 @@ const estudianteController = {
                 order: [['created_at', 'DESC']]
             });
 
-            // Procesar cada matrícula para obtener sus horas acumuladas
-            const periodos = await Promise.all(matriculas.map(async (m) => {
-                if (!m.periodo) return null;
+            if (matriculas.length === 0) {
+                return res.json({ success: true, periodos: [] });
+            }
 
-                // Calcular horas acumuladas para esta matrícula específica
-                // NOTA: Usamos sum() directo a la DB para mejor rendimiento
-                const horasAcumuladas = await RegistroHora.sum('horas', {
-                    where: { matriculacion_id: m.id }
-                });
+            const matriculacionIds = matriculas.map(m => m.id);
 
+            // 2. OPTIMIZACIÓN: Obtener horas acumuladas agrupadas por matrícula en UNA SOLA consulta
+            const horasPorMatricula = await RegistroHora.findAll({
+                attributes: [
+                    'matriculacion_id',
+                    [sequelize.fn('SUM', sequelize.col('horas')), 'total_horas']
+                ],
+                where: {
+                    matriculacion_id: matriculacionIds
+                },
+                group: ['matriculacion_id'],
+                raw: true
+            });
+
+            // Crear mapa para acceso rápido: { matricula_id: total_horas }
+            const horasMap = {};
+            horasPorMatricula.forEach(h => {
+                horasMap[h.matriculacion_id] = parseFloat(h.total_horas || 0);
+            });
+
+            // 3. Mapear resultados
+            const periodos = matriculas.filter(m => m.periodo).map(m => {
                 return {
                     id: m.periodo.id,
                     nombre: m.periodo.nombre,
                     fecha_inicio: m.periodo.fecha_inicio,
                     fecha_fin: m.periodo.fecha_fin,
                     horas_totales_requeridas: m.periodo.horas_totales_requeridas,
-                    horas_acumuladas: horasAcumuladas || 0, // Si es null (sin registros), retornar 0
+                    horas_acumuladas: horasMap[m.id] || 0,
                     activo: m.periodo.activo,
                     matricula: {
                         id: m.id,
@@ -419,10 +443,7 @@ const estudianteController = {
                         activa: m.activa
                     }
                 };
-            }));
-
-            // Filtrar nulos y ordenar (aunque Promise.all mantiene orden, aseguramos con el orden original del query)
-            const periodosFiltrados = periodos.filter(p => p !== null);
+            });
 
             res.json({
                 success: true,

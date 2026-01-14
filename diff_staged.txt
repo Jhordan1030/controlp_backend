@@ -1,0 +1,121 @@
+diff --git a/src/controllers/estudianteController.js b/src/controllers/estudianteController.js
+index b9d75f1..0f845e6 100644
+--- a/src/controllers/estudianteController.js
++++ b/src/controllers/estudianteController.js
+@@ -1,5 +1,6 @@
+ // ==================== src/controllers/estudianteController.js ====================
+ const { Estudiante, RegistroHora, Universidad, Periodo, Matriculacion } = require('../models');
++const bcrypt = require('bcrypt');
+ 
+ const estudianteController = {
+     // PERFIL (versión sin includes)
+@@ -482,6 +483,96 @@ const estudianteController = {
+                 error: 'Error al obtener registros del periodo'
+             });
+         }
++    },
++
++    // ACTUALIZAR PERFIL (Datos Personales)
++    actualizarPerfil: async (req, res) => {
++        try {
++            const { nombres, apellidos } = req.body;
++
++            // Validación simple
++            if (!nombres || !apellidos) {
++                return res.status(400).json({
++                    success: false,
++                    error: 'Nombres y apellidos son requeridos'
++                });
++            }
++
++            const estudiante = await Estudiante.findByPk(req.user.id);
++            if (!estudiante) {
++                return res.status(404).json({ success: false, error: 'Estudiante no encontrado' });
++            }
++
++            await estudiante.update({
++                nombres: nombres.trim(),
++                apellidos: apellidos.trim()
++            });
++
++            res.json({
++                success: true,
++                message: 'Perfil actualizado exitosamente',
++                estudiante: {
++                    nombres: estudiante.nombres,
++                    apellidos: estudiante.apellidos,
++                    email: estudiante.email
++                }
++            });
++
++        } catch (error) {
++            console.error('❌ Error actualizando perfil:', error);
++            res.status(500).json({ success: false, error: 'Error al actualizar perfil' });
++        }
++    },
++
++    // CAMBIAR CONTRASEÑA
++    cambiarPassword: async (req, res) => {
++        try {
++            const { passwordActual, passwordNuevo } = req.body;
++
++            if (!passwordActual || !passwordNuevo) {
++                return res.status(400).json({
++                    success: false,
++                    error: 'La contraseña actual y la nueva son requeridas'
++                });
++            }
++
++            if (passwordNuevo.length < 6) {
++                return res.status(400).json({
++                    success: false,
++                    error: 'La nueva contraseña debe tener al menos 6 caracteres'
++                });
++            }
++
++            // Buscar estudiante con contraseña
++            const estudiante = await Estudiante.findByPk(req.user.id);
++            if (!estudiante) {
++                return res.status(404).json({ success: false, error: 'Estudiante no encontrado' });
++            }
++
++            // Verificar contraseña actual
++            const esValida = await bcrypt.compare(passwordActual, estudiante.password_hash);
++            if (!esValida) {
++                return res.status(401).json({
++                    success: false,
++                    error: 'La contraseña actual es incorrecta'
++                });
++            }
++
++            // Hashear nueva contraseña
++            const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
++            const nuevoHash = await bcrypt.hash(passwordNuevo, saltRounds);
++
++            await estudiante.update({ password_hash: nuevoHash });
++
++            res.json({
++                success: true,
++                message: 'Contraseña actualizada correctamente'
++            });
++
++        } catch (error) {
++            console.error('❌ Error cambiando contraseña:', error);
++            res.status(500).json({ success: false, error: 'Error al cambiar contraseña' });
++        }
+     }
+ };
+ 
+diff --git a/src/routes/estudianteRoutes.js b/src/routes/estudianteRoutes.js
+index f714c90..ce813a1 100644
+--- a/src/routes/estudianteRoutes.js
++++ b/src/routes/estudianteRoutes.js
+@@ -10,6 +10,8 @@ router.use(isEstudiante);
+ 
+ // ========== PERFIL Y DASHBOARD ==========
+ router.get('/perfil', estudianteController.perfil);
++router.put('/perfil', estudianteController.actualizarPerfil); // Nueva ruta
++router.put('/cambiar-password', estudianteController.cambiarPassword); // Nueva ruta
+ router.get('/dashboard', estudianteController.dashboard);
+ router.get('/periodos', estudianteController.misPeriodos);
+ router.get('/periodos/:periodoId/registros', estudianteController.verRegistrosPorPeriodo);

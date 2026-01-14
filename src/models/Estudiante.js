@@ -40,7 +40,31 @@ const Estudiante = sequelize.define('Estudiante', {
     tableName: 'estudiantes',
     timestamps: true,
     createdAt: 'created_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
+    indexes: [
+        {
+            name: 'estudiantes_email_key',
+            unique: true,
+            fields: ['email']
+        },
+        {
+            name: 'idx_estudiantes_email',
+            fields: ['email']
+        },
+        {
+            name: 'idx_estudiantes_universidad',
+            fields: ['universidad_id']
+        },
+        {
+            name: 'idx_estudiantes_periodo',
+            fields: ['periodo_id']
+        },
+        {
+            name: 'idx_estudiantes_activos',
+            fields: ['activo'],
+            where: { activo: true }
+        }
+    ]
 });
 
 module.exports = Estudiante;
