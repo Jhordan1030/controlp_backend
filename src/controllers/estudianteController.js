@@ -5,7 +5,13 @@ const estudianteController = {
     // PERFIL (versión sin includes)
     perfil: async (req, res) => {
         try {
-            const estudiante = await Estudiante.findByPk(req.user.id);
+            const estudiante = await Estudiante.findByPk(req.user.id, {
+                include: [{
+                    model: Universidad,
+                    as: 'universidad',
+                    attributes: ['id', 'nombre']
+                }]
+            });
 
             if (!estudiante) {
                 return res.status(404).json({
@@ -22,6 +28,7 @@ const estudianteController = {
                     apellidos: estudiante.apellidos,
                     email: estudiante.email,
                     universidad_id: estudiante.universidad_id,
+                    universidad: estudiante.universidad ? estudiante.universidad.nombre : null,
                     periodo_id: estudiante.periodo_id,
                     activo: estudiante.activo
                 }
@@ -382,7 +389,7 @@ const estudianteController = {
                 include: [{
                     model: Periodo,
                     as: 'periodo',
-                    attributes: ['id', 'nombre', 'fecha_inicio', 'fecha_fin', 'activo']
+                    attributes: ['id', 'nombre', 'fecha_inicio', 'fecha_fin', 'activo', 'horas_totales_requeridas']
                 }],
                 order: [['created_at', 'DESC']]
             });
