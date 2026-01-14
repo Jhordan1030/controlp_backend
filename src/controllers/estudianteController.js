@@ -1,5 +1,5 @@
 // ==================== src/controllers/estudianteController.js ====================
-const { Estudiante, RegistroHora, Universidad, Periodo, Matriculacion } = require('../models');
+const { Estudiante, RegistroHora, Universidad, Periodo, Matriculacion, sequelize } = require('../models');
 const bcrypt = require('bcrypt');
 
 const estudianteController = {
