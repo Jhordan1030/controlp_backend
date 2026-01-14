@@ -374,28 +374,34 @@ const estudianteController = {
             });
         }
     },
-    // NUEVO: OBTENER PERIODOS DEL ESTUDIANTE
+    // NUEVO: OBTENER HISTORIAL DE PERIODOS (vía Matriculaciones)
     misPeriodos: async (req, res) => {
         try {
-            const estudiante = await Estudiante.findByPk(req.user.id, {
+            const matriculas = await Matriculacion.findAll({
+                where: { estudiante_id: req.user.id },
                 include: [{
                     model: Periodo,
                     as: 'periodo',
                     attributes: ['id', 'nombre', 'fecha_inicio', 'fecha_fin', 'activo']
-                }]
+                }],
+                order: [['created_at', 'DESC']]
             });
 
-            if (!estudiante) {
-                return res.status(404).json({
-                    success: false,
-                    error: 'Estudiante no encontrado'
-                });
-            }
-
-            // Como la relación actual es 1 a 1 (estudiante pertenece a UN periodo),
-            // devolvemos un array con ese único periodo si existe, o vacío si no.
-            // Esto mantiene compatibilidad si en el futuro se cambia a historial de periodos.
-            const periodos = estudiante.periodo ? [estudiante.periodo] : [];
+            const periodos = matriculas.map(m => {
+                if (!m.periodo) return null;
+                return {
+                    id: m.periodo.id,
+                    nombre: m.periodo.nombre,
+                    fecha_inicio: m.periodo.fecha_inicio,
+                    fecha_fin: m.periodo.fecha_fin,
+                    activo: m.periodo.activo,
+                    matricula: {
+                        id: m.id,
+                        fecha: m.fecha_matricula,
+                        activa: m.activa
+                    }
+                };
+            }).filter(p => p !== null);
 
             res.json({
                 success: true,
@@ -405,7 +411,7 @@ const estudianteController = {
             console.error('❌ Error en misPeriodos:', error);
             res.status(500).json({
                 success: false,
-                error: 'Error al obtener periodos'
+                error: 'Error al obtener historial de periodos'
             });
         }
     }
