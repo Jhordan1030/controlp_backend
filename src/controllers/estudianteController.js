@@ -387,13 +387,23 @@ const estudianteController = {
                 order: [['created_at', 'DESC']]
             });
 
-            const periodos = matriculas.map(m => {
+            // Procesar cada matrícula para obtener sus horas acumuladas
+            const periodos = await Promise.all(matriculas.map(async (m) => {
                 if (!m.periodo) return null;
+
+                // Calcular horas acumuladas para esta matrícula específica
+                // NOTA: Usamos sum() directo a la DB para mejor rendimiento
+                const horasAcumuladas = await RegistroHora.sum('horas', {
+                    where: { matriculacion_id: m.id }
+                });
+
                 return {
                     id: m.periodo.id,
                     nombre: m.periodo.nombre,
                     fecha_inicio: m.periodo.fecha_inicio,
                     fecha_fin: m.periodo.fecha_fin,
+                    horas_totales_requeridas: m.periodo.horas_totales_requeridas,
+                    horas_acumuladas: horasAcumuladas || 0, // Si es null (sin registros), retornar 0
                     activo: m.periodo.activo,
                     matricula: {
                         id: m.id,
@@ -401,7 +411,10 @@ const estudianteController = {
                         activa: m.activa
                     }
                 };
-            }).filter(p => p !== null);
+            }));
+
+            // Filtrar nulos y ordenar (aunque Promise.all mantiene orden, aseguramos con el orden original del query)
+            const periodosFiltrados = periodos.filter(p => p !== null);
 
             res.json({
                 success: true,
