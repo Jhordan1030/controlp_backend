@@ -1,5 +1,6 @@
 // ==================== src/controllers/estudianteController.js ====================
 const { Estudiante, RegistroHora, Universidad, Periodo, Matriculacion } = require('../models');
+const bcrypt = require('bcrypt');
 
 const estudianteController = {
     // PERFIL (versión sin includes)
@@ -481,6 +482,96 @@ const estudianteController = {
                 success: false,
                 error: 'Error al obtener registros del periodo'
             });
+        }
+    },
+
+    // ACTUALIZAR PERFIL (Datos Personales)
+    actualizarPerfil: async (req, res) => {
+        try {
+            const { nombres, apellidos } = req.body;
+
+            // Validación simple
+            if (!nombres || !apellidos) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Nombres y apellidos son requeridos'
+                });
+            }
+
+            const estudiante = await Estudiante.findByPk(req.user.id);
+            if (!estudiante) {
+                return res.status(404).json({ success: false, error: 'Estudiante no encontrado' });
+            }
+
+            await estudiante.update({
+                nombres: nombres.trim(),
+                apellidos: apellidos.trim()
+            });
+
+            res.json({
+                success: true,
+                message: 'Perfil actualizado exitosamente',
+                estudiante: {
+                    nombres: estudiante.nombres,
+                    apellidos: estudiante.apellidos,
+                    email: estudiante.email
+                }
+            });
+
+        } catch (error) {
+            console.error('❌ Error actualizando perfil:', error);
+            res.status(500).json({ success: false, error: 'Error al actualizar perfil' });
+        }
+    },
+
+    // CAMBIAR CONTRASEÑA
+    cambiarPassword: async (req, res) => {
+        try {
+            const { passwordActual, passwordNuevo } = req.body;
+
+            if (!passwordActual || !passwordNuevo) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'La contraseña actual y la nueva son requeridas'
+                });
+            }
+
+            if (passwordNuevo.length < 6) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'La nueva contraseña debe tener al menos 6 caracteres'
+                });
+            }
+
+            // Buscar estudiante con contraseña
+            const estudiante = await Estudiante.findByPk(req.user.id);
+            if (!estudiante) {
+                return res.status(404).json({ success: false, error: 'Estudiante no encontrado' });
+            }
+
+            // Verificar contraseña actual
+            const esValida = await bcrypt.compare(passwordActual, estudiante.password_hash);
+            if (!esValida) {
+                return res.status(401).json({
+                    success: false,
+                    error: 'La contraseña actual es incorrecta'
+                });
+            }
+
+            // Hashear nueva contraseña
+            const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+            const nuevoHash = await bcrypt.hash(passwordNuevo, saltRounds);
+
+            await estudiante.update({ password_hash: nuevoHash });
+
+            res.json({
+                success: true,
+                message: 'Contraseña actualizada correctamente'
+            });
+
+        } catch (error) {
+            console.error('❌ Error cambiando contraseña:', error);
+            res.status(500).json({ success: false, error: 'Error al cambiar contraseña' });
         }
     }
 };

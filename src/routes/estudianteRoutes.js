@@ -10,6 +10,8 @@ router.use(isEstudiante);
 
 // ========== PERFIL Y DASHBOARD ==========
 router.get('/perfil', estudianteController.perfil);
+router.put('/perfil', estudianteController.actualizarPerfil); // Nueva ruta
+router.put('/cambiar-password', estudianteController.cambiarPassword); // Nueva ruta
 router.get('/dashboard', estudianteController.dashboard);
 router.get('/periodos', estudianteController.misPeriodos);
 router.get('/periodos/:periodoId/registros', estudianteController.verRegistrosPorPeriodo);
