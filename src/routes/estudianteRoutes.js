@@ -11,6 +11,7 @@ router.use(isEstudiante);
 // ========== PERFIL Y DASHBOARD ==========
 router.get('/perfil', estudianteController.perfil);
 router.get('/dashboard', estudianteController.dashboard);
+router.get('/periodos', estudianteController.misPeriodos);
 
 // ========== REGISTROS DE HORAS ==========
 // Registrar nuevas horas
