@@ -434,6 +434,54 @@ const estudianteController = {
                 error: 'Error al obtener historial de periodos'
             });
         }
+    },
+
+    // NUEVO: OBTENER TODOS LOS REGISTROS DE UN PERIODO (PARA REPORTE PDF)
+    verRegistrosPorPeriodo: async (req, res) => {
+        try {
+            const { periodoId } = req.params;
+
+            // 1. Buscar la matrícula del estudiante en ese periodo
+            const matricula = await Matriculacion.findOne({
+                where: {
+                    estudiante_id: req.user.id,
+                    periodo_id: periodoId
+                }
+            });
+
+            if (!matricula) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'No se encontró matrícula para este periodo'
+                });
+            }
+
+            // 2. Buscar todos los registros de esa matrícula (sin paginación)
+            const registros = await RegistroHora.findAll({
+                where: { matriculacion_id: matricula.id },
+                order: [['fecha', 'ASC']] // Orden cronológico para reportes
+            });
+
+            const totalHoras = registros.reduce((sum, reg) =>
+                sum + parseFloat(reg.horas), 0
+            );
+
+            res.json({
+                success: true,
+                matricula_id: matricula.id,
+                periodo_id: periodoId,
+                totalRegistros: registros.length,
+                totalHoras: totalHoras.toFixed(2),
+                registros
+            });
+
+        } catch (error) {
+            console.error('❌ Error en verRegistrosPorPeriodo:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Error al obtener registros del periodo'
+            });
+        }
     }
 };
 
