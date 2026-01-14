@@ -49,7 +49,7 @@ const estudianteController = {
                     {
                         model: Periodo,
                         as: 'periodo',
-                        attributes: ['id', 'nombre', 'horas_totales_requeridas', 'fecha_inicio', 'fecha_fin']
+                        attributes: ['id', 'nombre', 'horas_totales_requeridas', 'fecha_inicio', 'fecha_fin', 'activo']
                     }
                 ]
             });
@@ -371,6 +371,41 @@ const estudianteController = {
             res.status(500).json({
                 success: false,
                 error: 'Error al obtener estadísticas'
+            });
+        }
+    },
+    // NUEVO: OBTENER PERIODOS DEL ESTUDIANTE
+    misPeriodos: async (req, res) => {
+        try {
+            const estudiante = await Estudiante.findByPk(req.user.id, {
+                include: [{
+                    model: Periodo,
+                    as: 'periodo',
+                    attributes: ['id', 'nombre', 'fecha_inicio', 'fecha_fin', 'activo']
+                }]
+            });
+
+            if (!estudiante) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Estudiante no encontrado'
+                });
+            }
+
+            // Como la relación actual es 1 a 1 (estudiante pertenece a UN periodo),
+            // devolvemos un array con ese único periodo si existe, o vacío si no.
+            // Esto mantiene compatibilidad si en el futuro se cambia a historial de periodos.
+            const periodos = estudiante.periodo ? [estudiante.periodo] : [];
+
+            res.json({
+                success: true,
+                periodos
+            });
+        } catch (error) {
+            console.error('❌ Error en misPeriodos:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Error al obtener periodos'
             });
         }
     }
