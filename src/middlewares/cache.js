@@ -26,4 +26,19 @@ const cacheMiddleware = (duration) => {
     }
 }
 
-module.exports = cacheMiddleware;
+const clearCache = (userId) => {
+    const keys = mcache.keys();
+    // Identificador del usuario al final de la key
+    const userSuffix = '__' + userId;
+
+    keys.forEach(key => {
+        if (key.endsWith(userSuffix)) {
+            mcache.del(key);
+        }
+    });
+}
+
+module.exports = {
+    cacheMiddleware,
+    clearCache
+};
