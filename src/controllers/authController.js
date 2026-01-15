@@ -303,7 +303,116 @@ const authController = {
         }
     },
 
-    // LOGOUT
+    // OBTENER PERFIL (Genérico para Admin/Estudiante)
+    perfil: async (req, res) => {
+        try {
+            const { id, tipo } = req.user;
+            let usuario;
+
+            if (tipo === 'administrador') {
+                usuario = await Administrador.findByPk(id, {
+                    attributes: { exclude: ['password_hash'] }
+                });
+            } else if (tipo === 'estudiante') {
+                usuario = await Estudiante.findByPk(id, {
+                    attributes: { exclude: ['password_hash'] }
+                });
+            }
+
+            if (!usuario) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Usuario no encontrado'
+                });
+            }
+
+            res.json({
+                success: true,
+                usuario: {
+                    ...usuario.toJSON(),
+                    tipo
+                }
+            });
+        } catch (error) {
+            console.error('❌ Error en perfil:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Error al obtener perfil'
+            });
+        }
+    },
+
+    // ACTUALIZAR PERFIL (Genérico)
+    actualizarPerfil: async (req, res) => {
+        try {
+            const { id, tipo } = req.user;
+            const { nombres, apellidos, email, password } = req.body;
+            let usuario;
+
+            if (tipo === 'administrador') {
+                usuario = await Administrador.findByPk(id);
+            } else if (tipo === 'estudiante') {
+                usuario = await Estudiante.findByPk(id);
+            }
+
+            if (!usuario) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Usuario no encontrado'
+                });
+            }
+
+            // Validar email único si se cambia
+            if (email && email !== usuario.email) {
+                const existeAdmin = await Administrador.findOne({ where: { email } });
+                const existeEst = await Estudiante.findOne({ where: { email } });
+
+                if ((existeAdmin && existeAdmin.id !== id) || (existeEst && existeEst.id !== id)) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'El email ya está en uso'
+                    });
+                }
+            }
+
+            const updates = {};
+            if (nombres) updates.nombres = nombres;
+            if (apellidos && tipo === 'estudiante') updates.apellidos = apellidos;
+            if (email) updates.email = email;
+
+            if (password) {
+                const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+                updates.password_hash = await bcrypt.hash(password, saltRounds);
+            }
+
+            await usuario.update(updates);
+
+            res.json({
+                success: true,
+                message: 'Perfil actualizado correctamente',
+                usuario: {
+                    id: usuario.id,
+                    nombres: usuario.nombres,
+                    // Apellidos solo si es estudiante, o undefined
+                    ...(tipo === 'estudiante' && { apellidos: usuario.apellidos }),
+                    email: usuario.email,
+                    tipo
+                }
+            });
+
+            if (auditController && auditController.logAction) {
+                await auditController.logAction(req, 'UPDATE_PROFILE', 'auth', id, { updates: Object.keys(updates) });
+            }
+
+        } catch (error) {
+            console.error('❌ Error actualizando perfil:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Error al actualizar perfil'
+            });
+        }
+    },
+
     // LOGOUT (Stateless)
     logout: async (req, res) => {
         try {

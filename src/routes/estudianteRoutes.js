@@ -10,11 +10,13 @@ router.use(isEstudiante);
 
 // ========== PERFIL Y DASHBOARD ==========
 router.get('/perfil', estudianteController.perfil);
-router.put('/perfil', estudianteController.actualizarPerfil); // Nueva ruta
-router.put('/cambiar-password', estudianteController.cambiarPassword); // Nueva ruta
-router.get('/dashboard', estudianteController.dashboard);
+router.put('/perfil', estudianteController.actualizarPerfil);
+router.put('/cambiar-password', estudianteController.cambiarPassword);
+// Caché para el dashboard y registros por periodo
+const cacheMiddleware = require('../middlewares/cache');
+router.get('/dashboard', cacheMiddleware(120), estudianteController.dashboard);
 router.get('/periodos', estudianteController.misPeriodos);
-router.get('/periodos/:periodoId/registros', estudianteController.verRegistrosPorPeriodo);
+router.get('/periodos/:periodoId/registros', cacheMiddleware(120), estudianteController.verRegistrosPorPeriodo);
 
 // ========== REGISTROS DE HORAS ==========
 // Registrar nuevas horas

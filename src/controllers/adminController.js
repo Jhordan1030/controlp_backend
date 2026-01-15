@@ -525,16 +525,34 @@ const adminController = {
 
     // ========== CRUD ESTUDIANTES ==========
 
-    // LISTAR ESTUDIANTES (versión sin includes temporalmente)
+    // LISTAR ESTUDIANTES (Con paginación)
     listarEstudiantes: async (req, res) => {
         try {
-            const estudiantes = await Estudiante.findAll({
-                order: [['apellidos', 'ASC']]
+            const { page = 1, limit = 20, busqueda = '' } = req.query;
+            const offset = (page - 1) * limit;
+
+            const whereClause = {};
+            if (busqueda) {
+                whereClause[Op.or] = [
+                    { nombres: { [Op.iLike]: `%${busqueda}%` } },
+                    { apellidos: { [Op.iLike]: `%${busqueda}%` } },
+                    { email: { [Op.iLike]: `%${busqueda}%` } }
+                ];
+            }
+
+            const { count, rows: estudiantes } = await Estudiante.findAndCountAll({
+                where: whereClause,
+                attributes: { exclude: ['password_hash'] }, // Seguridad y menos datos
+                order: [['apellidos', 'ASC']],
+                limit: parseInt(limit),
+                offset: parseInt(offset)
             });
 
             res.json({
                 success: true,
-                count: estudiantes.length,
+                count,
+                totalPages: Math.ceil(count / limit),
+                currentPage: parseInt(page),
                 estudiantes
             });
         } catch (error) {
@@ -560,15 +578,39 @@ const adminController = {
                 });
             }
 
-            // Obtener registros de horas del estudiante
-            const registros = await RegistroHora.findAll({
+            // OPTIMIZACIÓN: Usar suma agregada en lugar de reduce en memoria
+            const totalHoras = await RegistroHora.sum('horas', {
+                where: { estudiante_id: id }
+            }) || 0;
+
+            // OBTENER REGISTROS CON DETALLE DE MATRÍCULA Y PERIODO
+            const registrosRaw = await RegistroHora.findAll({
                 where: { estudiante_id: id },
-                order: [['fecha', 'DESC']]
+                include: [{
+                    model: Matriculacion,
+                    as: 'matriculacion',
+                    attributes: ['id', 'periodo_id'],
+                    include: [{
+                        model: Periodo,
+                        as: 'periodo',
+                        attributes: ['id', 'nombre']
+                    }]
+                }],
+                order: [['fecha', 'DESC']],
+                limit: 50
             });
 
-            const totalHoras = registros.reduce((sum, reg) =>
-                sum + parseFloat(reg.horas), 0
-            );
+            // Mapear para estructura plana y garantizada
+            const registros = registrosRaw.map(r => {
+                const reg = r.toJSON();
+                return {
+                    ...reg,
+                    estudiante_id: reg.estudiante_id, // Garantizado por columna
+                    periodo_id: reg.matriculacion?.periodo_id, // Explícitamente extraído
+                    periodo_nombre: reg.matriculacion?.periodo?.nombre, // Extra útil
+                    matriculacion: undefined // Limpiar anidación si se desea, o dejarla
+                };
+            });
 
             res.json({
                 success: true,

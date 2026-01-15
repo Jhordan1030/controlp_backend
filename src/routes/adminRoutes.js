@@ -31,8 +31,9 @@ router.put('/universidades/:id/toggle', adminController.toggleUniversidad);
 router.delete('/universidades/:id', adminController.eliminarUniversidad);
 
 // ========== PERIODOS ==========
-// Obtener todos los periodos
-router.get('/periodos', adminController.listarPeriodos);
+// Obtener todos los periodos (Caché 5 min = 300 seg)
+const cacheMiddleware = require('../middlewares/cache');
+router.get('/periodos', cacheMiddleware(300), adminController.listarPeriodos);
 
 // Obtener un periodo específico
 router.get('/periodos/:id', adminController.obtenerPeriodo);

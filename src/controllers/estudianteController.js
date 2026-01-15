@@ -181,10 +181,11 @@ const estudianteController = {
                 });
             }
 
-            // Verificar duplicado
+            // Verificar duplicado (Por matricula y fecha)
+            // Antes era solo por estudiante_id y fecha, lo que impedía registros en distintos periodos el mismo día.
             const existeRegistro = await RegistroHora.findOne({
                 where: {
-                    estudiante_id: req.user.id,
+                    matriculacion_id: matricula.id, // CAMBIO CRÍTICO: Validar por matrícula, no solo por estudiante
                     fecha: fecha
                 }
             });
@@ -192,7 +193,7 @@ const estudianteController = {
             if (existeRegistro) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Ya existe un registro para esta fecha'
+                    error: 'Ya existe un registro para esta fecha en este periodo'
                 });
             }
 

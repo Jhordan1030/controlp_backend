@@ -10,7 +10,11 @@ router.post('/primer-admin', validateRegistroAdmin, authController.registroPrime
 router.post('/registro-estudiante', validateRegistroEstudiante, authController.registroEstudiante);
 
 // Rutas protegidas
-router.post('/crear-admin', authenticateToken, validateRegistroAdmin, authController.crearAdmin);
+router.post('/crear-admin', authenticateToken, validateRegistroAdmin, authController.crearAdmin); // Solo admins (validado en controlador o middleware extra si se desea)
+
+// PERFIL (Usuario autenticado)
+router.get('/perfil', authenticateToken, authController.perfil);
+router.put('/perfil', authenticateToken, authController.actualizarPerfil);
 
 // LOGOUT
 router.post('/logout', authenticateToken, authController.logout);
