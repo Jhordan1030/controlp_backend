@@ -70,10 +70,19 @@ const estudianteController = {
                 });
             }
 
-            // OPTIMIZACIÓN: Obtener total de horas REAL (sumando todo en la DB)
-            const totalHoras = await RegistroHora.sum('horas', {
-                where: { estudiante_id: req.user.id }
-            }) || 0;
+            // OPTIMIZACIÓN: Obtener datos basados en la Matrícula Activa
+            const matriculaActiva = await Matriculacion.findOne({
+                where: {
+                    estudiante_id: req.user.id,
+                    activa: true
+                },
+                attributes: ['id'] // Solo necesitamos el ID para filtrar
+            });
+
+            // Si hay matrícula activa, sumamos SUS horas. Si no, es 0.
+            const totalHoras = matriculaActiva ? (await RegistroHora.sum('horas', {
+                where: { matriculacion_id: matriculaActiva.id }
+            }) || 0) : 0;
 
             // Obtener últimos registros para mostrar
             const registros = await RegistroHora.findAll({
