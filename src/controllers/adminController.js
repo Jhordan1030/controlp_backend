@@ -1042,6 +1042,59 @@ const adminController = {
                 error: 'Error al obtener estadísticas del estudiante'
             });
         }
+    },
+
+    // CAMBIAR CONTRASEÑA (Para el propio administrador)
+    cambiarPassword: async (req, res) => {
+        try {
+            const { passwordActual, passwordNuevo } = req.body;
+
+            if (!passwordActual || !passwordNuevo) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'La contraseña actual y la nueva son requeridas'
+                });
+            }
+
+            if (passwordNuevo.length < 6) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'La nueva contraseña debe tener al menos 6 caracteres'
+                });
+            }
+
+            // Buscar administrador
+            const admin = await Administrador.findByPk(req.user.id);
+            if (!admin) {
+                return res.status(404).json({ success: false, error: 'Administrador no encontrado' });
+            }
+
+            // Verificar contraseña actual
+            const esValida = await bcrypt.compare(passwordActual, admin.password_hash);
+            if (!esValida) {
+                return res.status(401).json({
+                    success: false,
+                    error: 'La contraseña actual es incorrecta'
+                });
+            }
+
+            // Hashear nueva contraseña
+            const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
+            const nuevoHash = await bcrypt.hash(passwordNuevo, saltRounds);
+
+            await admin.update({ password_hash: nuevoHash });
+
+            console.log(`🔐 Password actualizado para admin: ${admin.email}`);
+
+            res.json({
+                success: true,
+                message: 'Contraseña actualizada correctamente'
+            });
+
+        } catch (error) {
+            console.error('❌ Error cambiando contraseña de admin:', error);
+            res.status(500).json({ success: false, error: 'Error al cambiar contraseña' });
+        }
     }
 };
 

@@ -8,8 +8,9 @@ const { authenticateToken, isAdmin } = require('../middlewares/auth');
 router.use(authenticateToken);
 router.use(isAdmin);
 
-// ========== DASHBOARD ==========
+// ========== DASHBOARD Y PERFIL ==========
 router.get('/dashboard', adminController.dashboard);
+router.put('/cambiar-password', adminController.cambiarPassword);
 
 // ========== UNIVERSIDADES ==========
 // Obtener todas las universidades
