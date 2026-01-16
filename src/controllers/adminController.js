@@ -940,7 +940,8 @@ const adminController = {
             const passwordHash = await bcrypt.hash(nueva_password, 12);
 
             await estudiante.update({
-                password_hash: passwordHash
+                password_hash: passwordHash,
+                debe_cambiar_password: true
             });
 
             res.json({

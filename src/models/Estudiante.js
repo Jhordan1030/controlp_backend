@@ -35,6 +35,10 @@ const Estudiante = sequelize.define('Estudiante', {
     activo: {
         type: DataTypes.BOOLEAN,
         defaultValue: true
+    },
+    debe_cambiar_password: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true
     }
 }, {
     tableName: 'estudiantes',

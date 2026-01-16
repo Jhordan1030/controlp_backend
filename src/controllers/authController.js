@@ -93,7 +93,10 @@ const authController = {
                     nombres: usuario.nombres,
                     email: usuario.email,
                     tipo: tipo,
-                    ...(tipo === 'estudiante' && { apellidos: usuario.apellidos })
+                    ...(tipo === 'estudiante' && {
+                        apellidos: usuario.apellidos,
+                        debe_cambiar_password: usuario.debe_cambiar_password
+                    })
                 }
             });
 

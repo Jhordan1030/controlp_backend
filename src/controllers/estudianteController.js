@@ -134,10 +134,10 @@ const estudianteController = {
         try {
             const { fecha, horas, descripcion } = req.body;
 
-            if (!fecha || !horas || !descripcion) {
+            if (!fecha || !horas) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Fecha, horas y descripción son requeridos'
+                    error: 'Fecha y horas son requeridos'
                 });
             }
 
@@ -160,12 +160,8 @@ const estudianteController = {
             }
 
             // Validar descripción
-            if (descripcion.trim().length < 5) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'La descripción debe tener al menos 5 caracteres'
-                });
-            }
+            // Validar descripción (Opcional)
+            // if (descripcion && descripcion.trim().length < 5) { ... }
 
             // Verificar matrícula activa
             const matricula = await Matriculacion.findOne({
@@ -202,11 +198,12 @@ const estudianteController = {
                 estudiante_id: req.user.id,
                 fecha,
                 horas: horasNum,
-                descripcion: descripcion.trim(),
+                horas: horasNum,
+                descripcion: descripcion ? descripcion.trim() : '',
                 matriculacion_id: matricula.id
             });
 
-            console.log(`✅ Horas registradas: ${horasNum}h - ${descripcion.substring(0, 20)}... (${req.user.email})`);
+            console.log(`✅ Horas registradas: ${horasNum}h - ${descripcion ? descripcion.substring(0, 20) : 'Sin descripción'}... (${req.user.email})`);
 
             // Limpiar caché del usuario para actualizar dashboard y listas
             clearCache(req.user.id);
@@ -290,12 +287,7 @@ const estudianteController = {
                 }
             }
 
-            if (descripcion && descripcion.trim().length < 5) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'La descripción debe tener al menos 5 caracteres'
-                });
-            }
+            // Descripción opcional, sin longitud mínima
 
             await registro.update({
                 horas: horas !== undefined ? parseFloat(horas) : registro.horas,
@@ -606,7 +598,10 @@ const estudianteController = {
             const saltRounds = parseInt(process.env.BCRYPT_ROUNDS) || 12;
             const nuevoHash = await bcrypt.hash(passwordNuevo, saltRounds);
 
-            await estudiante.update({ password_hash: nuevoHash });
+            await estudiante.update({
+                password_hash: nuevoHash,
+                debe_cambiar_password: false
+            });
 
             res.json({
                 success: true,
