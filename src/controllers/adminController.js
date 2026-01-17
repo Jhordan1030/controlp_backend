@@ -1101,7 +1101,60 @@ const adminController = {
             console.error('❌ Error cambiando contraseña de admin:', error);
             res.status(500).json({ success: false, error: 'Error al cambiar contraseña' });
         }
-    }
+    },
+    // ========== EXTENSIÓN: MATRICULACIÓN MASIVA ==========
+    matricularEstudiantesMasivo: async (req, res) => {
+        try {
+            const { id } = req.params; // ID del periodo
+            const { universidad_id } = req.body;
+
+            if (!universidad_id) {
+                return res.status(400).json({ success: false, error: 'universidad_id es requerido' });
+            }
+
+            const periodo = await Periodo.findByPk(id);
+            if (!periodo) {
+                return res.status(404).json({ success: false, error: 'Periodo no encontrado' });
+            }
+
+            // Validar que el periodo pertenezca a la universidad (opcional, pero seguro)
+            if (periodo.universidad_id !== parseInt(universidad_id)) {
+                return res.status(400).json({ success: false, error: 'El periodo no pertenece a la universidad indicada' });
+            }
+
+            // Encontrar estudiantes de esta universidad que NO están en este periodo
+            // Asumiendo que queremos matricular a TODOS los que no estén ya inscritos en ÉSTE periodo.
+            // Si el estudiante ya tiene OTRO periodo, ¿se le cambia?
+            // La lógica del frontend "disponibles" era: est.periodo_id != periodoActual.id
+            // Asi que replicaremos esa lógica: Traer a todos los de la uni, y actualizar su periodo_id.
+
+            const result = await Estudiante.update(
+                { periodo_id: id },
+                {
+                    where: {
+                        universidad_id: universidad_id,
+                        [Op.or]: [
+                            { periodo_id: null },
+                            { periodo_id: { [Op.ne]: id } }
+                        ]
+                    }
+                }
+            );
+
+            // result[0] es el número de filas afectadas en Postgres/MySQL con Sequelize update
+
+            res.json({
+                success: true,
+                message: 'Matriculación masiva completada',
+                count: result[0]
+            });
+
+        } catch (error) {
+            console.error('❌ Error en matriculación masiva:', error);
+            res.status(500).json({ success: false, error: 'Error al realizar matriculación masiva' });
+        }
+    },
+
 };
 
 module.exports = adminController;

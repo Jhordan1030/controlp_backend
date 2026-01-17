@@ -63,6 +63,7 @@ router.post('/estudiantes', adminController.crearEstudiante);
 
 // Actualizar estudiante
 router.put('/estudiantes/:id', adminController.actualizarEstudiante);
+router.post('/periodos/:id/matricula-masiva', adminController.matricularEstudiantesMasivo);
 
 // Activar/desactivar estudiante
 router.put('/estudiantes/:id/toggle', adminController.toggleEstudiante);
