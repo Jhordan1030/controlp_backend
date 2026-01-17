@@ -80,6 +80,10 @@ const RegistroHora = sequelize.define('RegistroHora', {
         {
             name: 'idx_registros_estudiante_fecha',
             fields: ['estudiante_id', 'fecha']
+        },
+        {
+            name: 'idx_registros_matriculacion',
+            fields: ['matriculacion_id']
         }
     ]
 });

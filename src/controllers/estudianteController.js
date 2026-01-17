@@ -49,20 +49,38 @@ const estudianteController = {
         try {
             // Incluir Universidad y Periodo en la consulta
             // Incluir Estudiante, Universidad y Periodo en la consulta
-            const estudiante = await Estudiante.findByPk(req.user.id, {
-                include: [
-                    {
-                        model: Universidad,
-                        as: 'universidad',
-                        attributes: ['id', 'nombre']
+            // OPTIMIZACIÓN: Ejecutar consultas independientes en paralelo
+            const [estudiante, matriculaActiva, registros] = await Promise.all([
+                // 1. Datos del Estudiante
+                Estudiante.findByPk(req.user.id, {
+                    include: [
+                        {
+                            model: Universidad,
+                            as: 'universidad',
+                            attributes: ['id', 'nombre']
+                        },
+                        {
+                            model: Periodo,
+                            as: 'periodo',
+                            attributes: ['id', 'nombre', 'horas_totales_requeridas', 'fecha_inicio', 'fecha_fin', 'activo']
+                        }
+                    ]
+                }),
+                // 2. Matrícula Activa
+                Matriculacion.findOne({
+                    where: {
+                        estudiante_id: req.user.id,
+                        activa: true
                     },
-                    {
-                        model: Periodo,
-                        as: 'periodo',
-                        attributes: ['id', 'nombre', 'horas_totales_requeridas', 'fecha_inicio', 'fecha_fin', 'activo']
-                    }
-                ]
-            });
+                    attributes: ['id']
+                }),
+                // 3. Últimos registros (independiente de matrícula, es historial general del estudiante)
+                RegistroHora.findAll({
+                    where: { estudiante_id: req.user.id },
+                    order: [['fecha', 'DESC']],
+                    limit: 10
+                })
+            ]);
 
             if (!estudiante) {
                 return res.status(404).json({
@@ -71,28 +89,11 @@ const estudianteController = {
                 });
             }
 
-            // OPTIMIZACIÓN: Obtener datos basados en la Matrícula Activa
-            const matriculaActiva = await Matriculacion.findOne({
-                where: {
-                    estudiante_id: req.user.id,
-                    activa: true
-                },
-                attributes: ['id'] // Solo necesitamos el ID para filtrar
-            });
-
             // Si hay matrícula activa, sumamos SUS horas. Si no, es 0.
+            // Esta consulta depende de tener matriculaActiva, así que se ejecuta después.
             const totalHoras = matriculaActiva ? (await RegistroHora.sum('horas', {
                 where: { matriculacion_id: matriculaActiva.id }
             }) || 0) : 0;
-
-            // Obtener últimos registros para mostrar
-            const registros = await RegistroHora.findAll({
-                where: { estudiante_id: req.user.id },
-                order: [['fecha', 'DESC']],
-                limit: 10
-            });
-
-            // (totalHoras ya se calculó arriba correctamente)
 
             // Obtener datos del periodo
             const horasRequeridas = estudiante.periodo ? estudiante.periodo.horas_totales_requeridas : 0;
@@ -163,18 +164,32 @@ const estudianteController = {
             // Validar descripción (Opcional)
             // if (descripcion && descripcion.trim().length < 5) { ... }
 
-            // Verificar matrícula activa
+            // Verificar matrícula activa e incluir Periodo para validar fecha
             const matricula = await Matriculacion.findOne({
                 where: {
                     estudiante_id: req.user.id,
                     activa: true
-                }
+                },
+                include: [{
+                    model: Periodo,
+                    as: 'periodo',
+                    attributes: ['id', 'fecha_fin', 'activo']
+                }]
             });
 
             if (!matricula) {
                 return res.status(400).json({
                     success: false,
                     error: 'No tienes una matrícula activa para registrar horas.'
+                });
+            }
+
+            // [NUEVO] Validar si el periodo ha finalizado
+            // Usamos la fecha 'hoy' que ya calculaste arriba
+            if (hoy > matricula.periodo.fecha_fin) {
+                return res.status(400).json({
+                    success: false,
+                    error: `El periodo de registro finalizó el ${matricula.periodo.fecha_fin}. Contacta a tu administrador.`
                 });
             }
 

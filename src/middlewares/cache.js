@@ -12,17 +12,35 @@ const cacheMiddleware = (duration) => {
 
         if (cachedBody) {
             // Si hay caché, devolverla
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Vary', 'Authorization');
             res.send(cachedBody);
             return;
-        } else {
-            // Si no, interceptar el método send para guardar la respuesta antes de enviarla
-            res.sendResponse = res.send;
-            res.send = (body) => {
-                mcache.put(key, body, duration * 1000);
-                res.sendResponse(body);
-            }
-            next();
         }
+
+        // Si no hay caché, interceptar el método send para guardar la respuesta antes de enviarla
+        const sendResponse = res.send.bind(res);
+        res.send = (body) => {
+            // Solo cachear si la respuesta es exitosa
+            try {
+                if (res.statusCode === 200) {
+                    mcache.put(key, body, duration * 1000);
+                }
+            } catch (err) {
+                console.error('Cache error:', err);
+            }
+
+            // Evitar caché del navegador para asegurar que siempre se consulte al servidor
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            res.setHeader('Vary', 'Authorization');
+
+            return sendResponse(body);
+        }
+
+        next();
     }
 }
 

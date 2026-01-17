@@ -528,10 +528,16 @@ const adminController = {
     // LISTAR ESTUDIANTES (Con paginación)
     listarEstudiantes: async (req, res) => {
         try {
-            const { page = 1, limit = 20, busqueda = '' } = req.query;
+            const { page = 1, limit = 20, busqueda = '', universidad_id, periodo_id, activo } = req.query;
             const offset = (page - 1) * limit;
 
             const whereClause = {};
+
+            // Aplicar filtros exactos si existen
+            if (universidad_id) whereClause.universidad_id = universidad_id;
+            if (periodo_id) whereClause.periodo_id = periodo_id;
+            if (activo !== undefined) whereClause.activo = activo === 'true';
+
             if (busqueda) {
                 whereClause[Op.or] = [
                     { nombres: { [Op.iLike]: `%${busqueda}%` } },

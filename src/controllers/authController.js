@@ -66,6 +66,19 @@ const authController = {
                 });
             }
 
+
+            // Verificar si el usuario está activo
+            if (!usuario.activo) {
+                console.log(`❌ Usuario inactivo intentando login: ${email}`);
+                // Auditoria fallo login
+                await auditController.logAction(req, 'LOGIN_FAILED', 'auth', usuario.id, { email, reason: 'User inactive' });
+
+                return res.status(403).json({
+                    success: false,
+                    error: 'Tu cuenta ha sido desactivada. Comunícate con administración.'
+                });
+            }
+
             // Generar token
             const token = jwt.sign(
                 {
