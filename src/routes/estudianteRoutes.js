@@ -95,4 +95,7 @@ router.get('/exportar-registros', async (req, res) => {
     }
 });
 
+// ========== AUDITORÍA MANUAL ==========
+router.post('/auditoria/log', estudianteController.registrarAccionManual);
+
 module.exports = router;

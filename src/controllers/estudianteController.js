@@ -1,5 +1,5 @@
 // ==================== src/controllers/estudianteController.js ====================
-const { Estudiante, RegistroHora, Universidad, Periodo, Matriculacion, sequelize } = require('../models');
+const { Estudiante, RegistroHora, Universidad, Periodo, Matriculacion, sequelize, Auditoria } = require('../models');
 const { clearCache } = require('../middlewares/cache');
 const bcrypt = require('bcrypt');
 
@@ -626,6 +626,30 @@ const estudianteController = {
         } catch (error) {
             console.error('❌ Error cambiando contraseña:', error);
             res.status(500).json({ success: false, error: 'Error al cambiar contraseña' });
+        }
+    },
+    // ========== AUDITORÍA MANUAL ==========
+    registrarAccionManual: async (req, res) => {
+        try {
+            const { accion, detalles } = req.body;
+            const ip_address = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+            const user_agent = req.headers['user-agent'];
+
+            await Auditoria.create({
+                usuario_id: req.user.id,
+                usuario_tipo: 'estudiante',
+                accion: accion || 'ACCION_GENERICA',
+                tabla_afectada: null,
+                registro_id: null,
+                detalles: detalles,
+                ip_address: ip_address?.toString().substring(0, 45),
+                user_agent: user_agent
+            });
+
+            res.json({ success: true, message: 'Auditoría registrada' });
+        } catch (error) {
+            console.error('❌ Error en registrarAccionManual (Estudiante):', error);
+            res.status(500).json({ success: false, error: 'Error al registrar auditoría' });
         }
     }
 };

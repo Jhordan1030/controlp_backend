@@ -77,4 +77,7 @@ router.delete('/estudiantes/:id', adminController.eliminarEstudiante);
 // Obtener estadísticas de estudiante
 router.get('/estudiantes/:id/estadisticas', adminController.estadisticasEstudiante);
 
+// ========== AUDITORÍA MANUAL ==========
+router.post('/auditoria/log', adminController.registrarAccionManual);
+
 module.exports = router;

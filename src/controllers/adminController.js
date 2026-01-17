@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
-const { Universidad, Estudiante, Periodo, Administrador, RegistroHora, Matriculacion } = require('../models');
+const { Universidad, Estudiante, Periodo, Administrador, RegistroHora, Matriculacion, Auditoria } = require('../models');
 
 const adminController = {
     // DASHBOARD
@@ -1155,6 +1155,32 @@ const adminController = {
         }
     },
 
+    // ========== AUDITORÍA MANUAL ==========
+    registrarAccionManual: async (req, res) => {
+        try {
+            const { accion, detalles } = req.body;
+            const ip_address = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+            const user_agent = req.headers['user-agent'];
+
+            await Auditoria.create({
+                usuario_id: req.user.id,
+                usuario_tipo: 'admin',
+                accion: accion || 'ACCION_GENERICA',
+                tabla_afectada: null,
+                registro_id: null,
+                detalles: detalles,
+                ip_address: ip_address?.toString().substring(0, 45),
+                user_agent: user_agent
+            });
+
+            res.json({ success: true, message: 'Auditoría registrada' });
+        } catch (error) {
+            console.error('❌ Error en registrarAccionManual:', error);
+            // No fallar la petición principal si falla la auditoría manual
+            res.status(500).json({ success: false, error: 'Error al registrar auditoría' });
+        }
+    }
 };
+
 
 module.exports = adminController;
