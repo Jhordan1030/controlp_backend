@@ -63,18 +63,22 @@ const estudianteController = {
                             model: Periodo,
                             as: 'periodo',
                             attributes: ['id', 'nombre', 'horas_totales_requeridas', 'fecha_inicio', 'fecha_fin', 'activo']
-                        }
+                        } // Fallback si no hay matrícula activa
                     ]
                 }),
-                // 2. Matrícula Activa
+                // 2. Matrícula Activa (Prioridad)
                 Matriculacion.findOne({
                     where: {
                         estudiante_id: req.user.id,
                         activa: true
                     },
-                    attributes: ['id']
+                    include: [{
+                        model: Periodo,
+                        as: 'periodo',
+                        attributes: ['id', 'nombre', 'horas_totales_requeridas', 'fecha_inicio', 'fecha_fin', 'activo']
+                    }]
                 }),
-                // 3. Últimos registros (independiente de matrícula, es historial general del estudiante)
+                // 3. Últimos registros
                 RegistroHora.findAll({
                     where: { estudiante_id: req.user.id },
                     order: [['fecha', 'DESC']],
@@ -89,15 +93,18 @@ const estudianteController = {
                 });
             }
 
-            // Si hay matrícula activa, sumamos SUS horas. Si no, es 0.
-            // Esta consulta depende de tener matriculaActiva, así que se ejecuta después.
+            // LÓGICA DE PRIORIDAD DE PERIODO:
+            // 1. Si tiene matrícula activa, usamos el periodo de esa matrícula (lo más común).
+            // 2. Si no, usamos el periodo asignado al perfil del estudiante (fallback).
+            const currentPeriod = matriculaActiva?.periodo || estudiante.periodo;
+
+            // Si hay matrícula activa, sumamos SUS horas.
             const totalHoras = matriculaActiva ? (await RegistroHora.sum('horas', {
                 where: { matriculacion_id: matriculaActiva.id }
             }) || 0) : 0;
 
-            // Obtener datos del periodo
-            const horasRequeridas = estudiante.periodo ? estudiante.periodo.horas_totales_requeridas : 0;
-            const periodoNombre = estudiante.periodo ? estudiante.periodo.nombre : 'Sin asignar';
+            const horasRequeridas = currentPeriod ? currentPeriod.horas_totales_requeridas : 0;
+            const periodoNombre = currentPeriod ? currentPeriod.nombre : 'Sin asignar';
             const universidadNombre = estudiante.universidad ? estudiante.universidad.nombre : 'Sin asignar';
 
             res.json({
@@ -109,11 +116,19 @@ const estudianteController = {
                     email: estudiante.email,
                     universidad: universidadNombre,
                     periodo: periodoNombre,
-                    periodo_info: estudiante.periodo // Info extra útil
+                    // Enviamos objeto completo para que el frontend pueda ver 'activo', fechas, etc.
+                    periodo_info: currentPeriod ? {
+                        id: currentPeriod.id,
+                        nombre: currentPeriod.nombre,
+                        activo: currentPeriod.activo,
+                        horas_totales_requeridas: currentPeriod.horas_totales_requeridas,
+                        fecha_inicio: currentPeriod.fecha_inicio,
+                        fecha_fin: currentPeriod.fecha_fin
+                    } : null
                 },
                 estadisticas: {
                     totalRegistros: registros.length,
-                    totalHoras: totalHoras.toFixed(2),
+                    totalHoras: parseFloat(totalHoras).toFixed(2), // Asegurar number -> string fixed
                     horasRequeridas,
                     horasFaltantes: Math.max(0, horasRequeridas - totalHoras).toFixed(2),
                     porcentaje: horasRequeridas > 0 ?
