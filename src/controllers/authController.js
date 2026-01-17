@@ -419,6 +419,13 @@ const authController = {
     // LOGOUT (Stateless)
     logout: async (req, res) => {
         try {
+            const { id } = req.user;
+
+            // Limpiar caché del usuario
+            const { clearCache } = require('../middlewares/cache');
+            clearCache(id);
+            console.log(`🧹 Caché limpiada para usuario: ${id}`);
+
             // En JWT stateless, el servidor no necesita hacer nada más que confirmar.
             // Es responsabilidad del cliente eliminar el token.
             console.log('🚪 Logout solicitado (Stateless)');
