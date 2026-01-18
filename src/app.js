@@ -34,7 +34,8 @@ const whitelist = [
   'https://controlp-frontend-git-dev-jhordans-projects-1df1d75c.vercel.app',
   'https://controlp-frontend.vercel.app', // Production specific (typo domain)
   'https://controlp-frontend.vercel.app', // Production correct domain (just in case)
-  'https://controlp-backend.vercel.app'
+  'https://controlp-backend.vercel.app',
+  'https://savings-have-icq-paul.trycloudflare.com' // Cloudflare Tunnel
 ];
 
 // Si hay variable de entorno CORS_ORIGIN, agregarla
