@@ -1,6 +1,8 @@
 const { Op } = require('sequelize');
 const bcrypt = require('bcrypt');
 const { Universidad, Estudiante, Periodo, Administrador, RegistroHora, Matriculacion, Auditoria } = require('../models');
+const { clearAllCache } = require('../middlewares/cache');
+const periodoService = require('../services/periodoService');
 
 const adminController = {
     // DASHBOARD
@@ -116,6 +118,8 @@ const adminController = {
 
             console.log(`✅ Universidad creada: ${universidad.nombre}`);
 
+            clearAllCache();
+
             res.status(201).json({
                 success: true,
                 message: 'Universidad creada exitosamente',
@@ -169,6 +173,8 @@ const adminController = {
 
             console.log(`✅ Universidad actualizada: ${universidad.nombre}`);
 
+            clearAllCache();
+
             res.json({
                 success: true,
                 message: 'Universidad actualizada exitosamente',
@@ -204,6 +210,8 @@ const adminController = {
             });
 
             console.log(`🔄 Universidad ${nuevoEstado ? 'activada' : 'desactivada'}: ${universidad.nombre}`);
+
+            clearAllCache();
 
             res.json({
                 success: true,
@@ -266,6 +274,8 @@ const adminController = {
             await universidad.destroy();
 
             console.log(`🗑️ Universidad eliminada ID: ${id}`);
+
+            clearAllCache();
 
             res.json({
                 success: true,
@@ -376,6 +386,8 @@ const adminController = {
 
             console.log(`✅ Periodo creado: ${periodo.nombre}`);
 
+            clearAllCache();
+
             res.status(201).json({
                 success: true,
                 message: 'Periodo creado exitosamente',
@@ -425,6 +437,8 @@ const adminController = {
 
             console.log(`✅ Periodo actualizado: ${periodo.nombre}`);
 
+            clearAllCache();
+
             res.json({
                 success: true,
                 message: 'Periodo actualizado exitosamente',
@@ -460,6 +474,8 @@ const adminController = {
             });
 
             console.log(`🔄 Periodo ${nuevoEstado ? 'activado' : 'desactivado'}: ${periodo.nombre}`);
+
+            clearAllCache();
 
             res.json({
                 success: true,
@@ -509,6 +525,8 @@ const adminController = {
 
             await periodo.destroy();
             console.log(`🗑️ Periodo eliminado ID: ${id}`);
+
+            clearAllCache();
 
             res.json({
                 success: true,
@@ -741,6 +759,8 @@ const adminController = {
                 }
             }
 
+            clearAllCache();
+
             res.status(201).json({
                 success: true,
                 message: 'Estudiante creado exitosamente',
@@ -865,6 +885,8 @@ const adminController = {
 
             console.log(`✅ Estudiante actualizado: ${estudiante.email}`);
 
+            clearAllCache();
+
             res.json({
                 success: true,
                 message: 'Estudiante actualizado exitosamente',
@@ -898,6 +920,8 @@ const adminController = {
             await estudiante.update({
                 activo: nuevoEstado
             });
+
+            clearAllCache();
 
             res.json({
                 success: true,
@@ -990,6 +1014,8 @@ const adminController = {
             }
 
             await estudiante.destroy();
+
+            clearAllCache();
 
             res.json({
                 success: true,
@@ -1143,6 +1169,10 @@ const adminController = {
 
             // result[0] es el número de filas afectadas en Postgres/MySQL con Sequelize update
 
+            if (result[0] > 0) {
+                clearAllCache();
+            }
+
             res.json({
                 success: true,
                 message: 'Matriculación masiva completada',
@@ -1178,6 +1208,28 @@ const adminController = {
             console.error('❌ Error en registrarAccionManual:', error);
             // No fallar la petición principal si falla la auditoría manual
             res.status(500).json({ success: false, error: 'Error al registrar auditoría' });
+        }
+    },
+
+    // VERIFICAR Y DESACTIVAR PERIODOS VENCIDOS
+    verificarPeriodosVencidos: async (req, res) => {
+        try {
+            const result = await periodoService.verificarYDesactivarVencidos();
+
+            await auditController.logAction(req, 'VERIFY_PERIODOS', 'periodos', null, { desactivados: result.count });
+
+            res.json({
+                success: true,
+                message: `Proceso completado. Se desactivaron ${result.count} periodos vencidos.`,
+                periodosDesactivados: result.count
+            });
+
+        } catch (error) {
+            console.error('❌ Error en verificarPeriodosVencidos:', error);
+            res.status(500).json({
+                success: false,
+                error: 'Error al verificar periodos vencidos'
+            });
         }
     }
 };

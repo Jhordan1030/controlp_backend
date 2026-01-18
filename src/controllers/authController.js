@@ -4,6 +4,7 @@ const { validationResult } = require('express-validator');
 const Estudiante = require('../models/Estudiante');
 const Administrador = require('../models/Administrador');
 const auditController = require('./auditController');
+const { clearAllCache } = require('../middlewares/cache');
 
 const authController = {
     // LOGIN para admin o estudiante
@@ -169,6 +170,8 @@ const authController = {
             req.user = { id: admin.id, tipo: 'administrador' };
             await auditController.logAction(req, 'CREATE_FIRST_ADMIN', 'administradores', admin.id, { email });
 
+            clearAllCache();
+
             res.status(201).json({
                 success: true,
                 message: '¡Primer administrador creado exitosamente!',
@@ -241,6 +244,8 @@ const authController = {
             req.user = { id: estudiante.id, tipo: 'estudiante' };
             await auditController.logAction(req, 'REGISTER_STUDENT', 'estudiantes', estudiante.id, { email });
 
+            clearAllCache();
+
             res.status(201).json({
                 success: true,
                 message: 'Estudiante registrado exitosamente',
@@ -298,6 +303,8 @@ const authController = {
             console.log(`✅ Nuevo administrador creado: ${email}`);
 
             await auditController.logAction(req, 'CREATE_ADMIN', 'administradores', admin.id, { email, super_admin });
+
+            clearAllCache();
 
             res.status(201).json({
                 success: true,
@@ -419,6 +426,9 @@ const authController = {
             if (auditController && auditController.logAction) {
                 await auditController.logAction(req, 'UPDATE_PROFILE', 'auth', id, { updates: Object.keys(updates) });
             }
+
+            clearAllCache();
+
 
         } catch (error) {
             console.error('❌ Error actualizando perfil:', error);

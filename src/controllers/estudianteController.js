@@ -1,6 +1,6 @@
 // ==================== src/controllers/estudianteController.js ====================
 const { Estudiante, RegistroHora, Universidad, Periodo, Matriculacion, sequelize, Auditoria } = require('../models');
-const { clearCache } = require('../middlewares/cache');
+const { clearCache, clearAllCache, clearCacheByKeyword } = require('../middlewares/cache');
 const bcrypt = require('bcrypt');
 
 const estudianteController = {
@@ -235,8 +235,9 @@ const estudianteController = {
 
             console.log(`✅ Horas registradas: ${horasNum}h - ${descripcion ? descripcion.substring(0, 20) : 'Sin descripción'}... (${req.user.email})`);
 
-            // Limpiar caché del usuario para actualizar dashboard y listas
+            // Limpiar caché del usuario y del admin (para actualizar dashboard)
             clearCache(req.user.id);
+            clearCacheByKeyword('/admin');
 
             res.status(201).json({
                 success: true,
@@ -326,6 +327,7 @@ const estudianteController = {
 
             // Limpiar caché
             clearCache(req.user.id);
+            clearCacheByKeyword('/admin');
 
             res.json({
                 success: true,
@@ -364,6 +366,7 @@ const estudianteController = {
 
             // Limpiar caché
             clearCache(req.user.id);
+            clearCacheByKeyword('/admin');
 
             res.json({
                 success: true,
@@ -573,6 +576,7 @@ const estudianteController = {
 
             // Limpiar caché
             clearCache(req.user.id);
+            clearCacheByKeyword('/admin');
 
             res.json({
                 success: true,

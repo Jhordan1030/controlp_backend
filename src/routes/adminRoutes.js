@@ -51,6 +51,9 @@ router.put('/periodos/:id/toggle', adminController.togglePeriodo);
 // Eliminar periodo
 router.delete('/periodos/:id', adminController.eliminarPeriodo);
 
+// Verificar vencimiento de periodos (Ejecutar diariamente)
+router.post('/periodos/verificar-vencimiento', adminController.verificarPeriodosVencidos);
+
 // ========== ESTUDIANTES ==========
 // Obtener todos los estudiantes
 router.get('/estudiantes', adminController.listarEstudiantes);

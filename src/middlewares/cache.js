@@ -56,7 +56,23 @@ const clearCache = (userId) => {
     });
 }
 
+const clearAllCache = () => {
+    mcache.clear();
+    console.log('🧹 CACHÉ GLOBAL LIMPIADA');
+}
+
+const clearCacheByKeyword = (keyword) => {
+    const keys = mcache.keys();
+    keys.forEach(key => {
+        if (key.includes(keyword)) {
+            mcache.del(key);
+        }
+    });
+}
+
 module.exports = {
     cacheMiddleware,
-    clearCache
+    clearCache,
+    clearAllCache,
+    clearCacheByKeyword
 };
