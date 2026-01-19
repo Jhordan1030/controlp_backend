@@ -17,6 +17,7 @@ const RegistroHora = require('./RegistroHora');
 const Evidencia = require('./Evidencia');
 const Auditoria = require('./Auditoria');
 const Sesion = require('./Sesion');
+const SolicitudDemo = require('./SolicitudDemo');
 
 // Objeto con todos los modelos
 const models = {
@@ -31,7 +32,9 @@ const models = {
     RegistroHora,
     Evidencia,
     Auditoria,
-    Sesion
+    Auditoria,
+    Sesion,
+    SolicitudDemo
 };
 
 // Configurar asociaciones

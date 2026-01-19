@@ -10,6 +10,7 @@ const compression = require('compression');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const estudianteRoutes = require('./routes/estudianteRoutes');
+const publicRoutes = require('./routes/publicRoutes');
 
 // Importar middleware de errores
 const errorHandler = require('./middlewares/errorHandler');
@@ -117,6 +118,7 @@ app.use(require('./middlewares/requestLogger'));
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/estudiante', estudianteRoutes);
+app.use('/api/v1/public', publicRoutes);
 app.use('/api/v1/admin/auditoria', require('./routes/auditRoutes'));
 
 // Health check

@@ -80,6 +80,11 @@ router.delete('/estudiantes/:id', adminController.eliminarEstudiante);
 // Obtener estadísticas de estudiante
 router.get('/estudiantes/:id/estadisticas', adminController.estadisticasEstudiante);
 
+// ========== LEADS (SOLICITUDES DEMO) ==========
+const adminLeadsController = require('../controllers/adminLeadsController');
+router.get('/leads', adminLeadsController.getAllLeads);
+router.put('/leads/:id', adminLeadsController.updateLeadStatus);
+
 // ========== AUDITORÍA MANUAL ==========
 router.post('/auditoria/log', adminController.registrarAccionManual);
 

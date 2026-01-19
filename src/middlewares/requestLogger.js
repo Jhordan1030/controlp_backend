@@ -1,10 +1,11 @@
 // src/middlewares/requestLogger.js
 const logger = require('../utils/logger');
+const { validate: isUuid } = require('uuid');
 
 const requestLogger = async (req, res, next) => {
     const startTime = Date.now();
     const requestId = Math.random().toString(36).substring(7);
-    
+
     // Log inicial de la petición
     logger.info(`📥 [${requestId}] ${req.method} ${req.path}`, {
         requestId,
@@ -13,7 +14,7 @@ const requestLogger = async (req, res, next) => {
         ip: req.ip,
         userAgent: req.headers['user-agent']
     });
-    
+
     // Capturar información de auditoría
     const auditData = {
         requestId,
@@ -24,15 +25,15 @@ const requestLogger = async (req, res, next) => {
         query: req.query,
         body: req.method !== 'GET' ? sanitizeBody(req.body) : null
     };
-    
+
     // Interceptar la respuesta
     const originalJson = res.json;
     const originalSend = res.send;
     const originalEnd = res.end;
-    
-    res.json = function(body) {
+
+    res.json = function (body) {
         const duration = Date.now() - startTime;
-        
+
         // Log de respuesta
         const statusColor = res.statusCode >= 400 ? '❌' : res.statusCode >= 300 ? '⚠️' : '✅';
         logger.info(`${statusColor} [${requestId}] ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`, {
@@ -43,36 +44,36 @@ const requestLogger = async (req, res, next) => {
             duration: `${duration}ms`,
             responseSize: JSON.stringify(body).length
         });
-        
+
         // Registrar auditoría en BD asíncronamente
         setTimeout(async () => {
             try {
                 const { Auditoria } = require('../models');
-                
+
                 // Determinar tipo de usuario
                 let usuarioId = null;
                 let usuarioTipo = null;
-                
+
                 if (req.user) {
                     usuarioId = req.user.id;
                     usuarioTipo = req.user.tipo;
                 }
-                
+
                 // Determinar acción
                 const accion = determineAction(req.method, res.statusCode);
                 const tabla = determineTable(req.path);
-                
+
                 // No registrar ciertas rutas
                 if (shouldSkipAudit(req.path)) {
                     return;
                 }
-                
+
                 await Auditoria.create({
-                    usuario_id: usuarioId,
+                    usuario_id: (usuarioId && isUuid(usuarioId)) ? usuarioId : null,
                     usuario_tipo: usuarioTipo,
                     accion: accion,
                     tabla_afectada: tabla,
-                    registro_id: req.params.id || null,
+                    registro_id: (req.params.id && isUuid(req.params.id)) ? req.params.id : null,
                     detalles: {
                         ...auditData,
                         statusCode: res.statusCode,
@@ -82,13 +83,13 @@ const requestLogger = async (req, res, next) => {
                     ip_address: req.ip,
                     user_agent: req.headers['user-agent']
                 });
-                
+
                 logger.debug(`📝 [${requestId}] Auditoría guardada en BD`, {
                     requestId,
                     action: accion,
                     table: tabla
                 });
-                
+
             } catch (error) {
                 logger.error(`❌ [${requestId}] Error guardando auditoría: ${error.message}`, {
                     requestId,
@@ -97,10 +98,10 @@ const requestLogger = async (req, res, next) => {
                 });
             }
         }, 0);
-        
+
         return originalJson.call(this, body);
     };
-    
+
     next();
 };
 
@@ -109,7 +110,7 @@ function determineAction(method, statusCode) {
     if (statusCode >= 400) {
         return `FAILED_${method}`;
     }
-    
+
     const actions = {
         'GET': 'READ',
         'POST': 'CREATE',
@@ -117,7 +118,7 @@ function determineAction(method, statusCode) {
         'PATCH': 'UPDATE',
         'DELETE': 'DELETE'
     };
-    
+
     return actions[method] || method;
 }
 
@@ -133,13 +134,13 @@ function determineTable(path) {
         '/auth': 'autenticacion',
         '/admin': 'administracion'
     };
-    
+
     for (const [key, table] of Object.entries(tableMap)) {
         if (path.includes(key)) {
             return table;
         }
     }
-    
+
     return 'sistema';
 }
 
@@ -150,21 +151,21 @@ function shouldSkipAudit(path) {
         '/api/v1/auditoria',
         '/auth/login' // Ya se registra en authController
     ];
-    
+
     return excludedPaths.some(excluded => path.includes(excluded));
 }
 
 function sanitizeBody(body) {
     if (!body || typeof body !== 'object') return body;
-    
+
     const sanitized = { ...body };
-    
+
     // Remover campos sensibles
     if (sanitized.password) sanitized.password = '[REDACTED]';
     if (sanitized.password_hash) sanitized.password_hash = '[REDACTED]';
     if (sanitized.token) sanitized.token = '[REDACTED]';
     if (sanitized.confirmPassword) sanitized.confirmPassword = '[REDACTED]';
-    
+
     return sanitized;
 }
 
